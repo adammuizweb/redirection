@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Redirection</title>
+  <desc id="desc">A routed arrow turning toward a destination point</desc>
+  <rect width="512" height="512" rx="112" fill="#111827"/>
+  <path d="M112 152h128c88 0 160 72 160 160v28" fill="none" stroke="#f5f1e8" stroke-width="46" stroke-linecap="round"/>
+  <path d="m329 281 71 71 71-71" fill="none" stroke="#e44724" stroke-width="46" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="112" cy="152" r="34" fill="#e44724"/>
+</svg>

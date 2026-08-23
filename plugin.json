@@ -1,0 +1,68 @@
+{
+  "name": "redirection",
+  "version": "1.0.0",
+  "title": "Redirection",
+  "description": "Manage safe exact-path redirects and bounded 404 insights for Jyavani.",
+  "author": "Adam Muiz",
+  "author_uri": "https://jyavani.com/member/adammuiz/",
+  "plugin_uri": "https://jyavani.com/plugin/redirection/",
+  "homepage": "https://github.com/adammuizweb/redirection",
+  "github_url": "https://github.com/adammuizweb/redirection",
+  "license": "MIT",
+  "icon": "icon.svg",
+  "store": {
+    "url": "https://jyavani.com/plugin-store",
+    "slug": "redirection"
+  },
+  "requires": {
+    "jyavani": ">=2.3.74",
+    "php": ">=8.1",
+    "extensions": ["pdo", "pdo_mysql", "json", "mbstring"],
+    "plugins": {}
+  },
+  "permissions": [
+    {
+      "key": "plugin.redirection.rules.manage",
+      "label": "Manage Redirects",
+      "supports_scope": false,
+      "default_roles": ["admin"],
+      "delegable": false
+    }
+  ],
+  "admin": {
+    "pages": [
+      {
+        "route": "admin/tools/redirection",
+        "file": "admin/index.php",
+        "title": "Redirection",
+        "roles": ["admin"],
+        "permission": "plugin.redirection.rules.manage"
+      },
+      {
+        "route": "admin/tools/redirection/action",
+        "file": "admin/action.php",
+        "title": "Redirection Action",
+        "roles": ["admin"],
+        "permission": "plugin.redirection.rules.manage",
+        "hidden": true
+      }
+    ],
+    "nav": [
+      {
+        "label": "Redirection",
+        "icon": "corner-up-right",
+        "page": "admin/tools/redirection",
+        "parent": "tools",
+        "roles": ["admin"]
+      }
+    ]
+  },
+  "static": {
+    "copy": [
+      {
+        "from": "assets/css/admin.css",
+        "to": "static/plugins/redirection/admin.css"
+      }
+    ]
+  }
+}
