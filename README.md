@@ -38,7 +38,8 @@ Jyavani Core 2.3.74 exposes unresolved redirects as permanent `301` responses an
 
 Source paths:
 
-- Must be root-relative, such as `/old-section/`.
+- May be entered as `old-section`, `old-section/`, `/old-section`, or `/old-section/`; all normalize to `/old-section/`.
+- File-like paths such as `adam.html` normalize to `/adam.html` without a trailing slash.
 - Match exact paths only and preserve letter case.
 - Cannot include query strings or fragments.
 - Cannot shadow active Jyavani routes.
@@ -46,7 +47,10 @@ Source paths:
 Target URLs:
 
 - May be internal and root-relative, such as `/new-section/`.
+- Internal slashes are optional; `new-section` normalizes to `/new-section/`.
 - May use an absolute HTTPS domain after both external-destination and query-forwarding consent are checked.
+- A domain without a scheme, such as `google.com/video.mp4`, normalizes to `https://google.com/video.mp4` after consent.
+- A dotted first segment is treated as a domain. Prefix it with `/`, such as `/video.mp4` or `/folder.name/video.mp4`, when it is an internal path.
 - External URLs cannot contain credentials, custom ports, IP hosts, protocol-relative syntax, or unsafe control bytes.
 - Absolute URLs for the current host are rejected; use a root-relative target so loop detection remains effective.
 - May include an encoded query string or fragment.
@@ -82,7 +86,7 @@ php tests/package_contract.php
 Build and inspect a flat candidate package:
 
 ```bash
-php tools/build-package.php /tmp/redirection-1.1.0.zip
+php tools/build-package.php /tmp/redirection-1.2.0.zip
 ```
 
 The repository is the authoritative development source. Store publisher copies and installed copies are release or runtime derivatives.

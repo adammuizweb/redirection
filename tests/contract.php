@@ -37,7 +37,10 @@ $check(isset($GLOBALS['_jyr_hooks']['init']), 'bounded 404 capture is registered
 $check(isset($GLOBALS['_jyr_hooks']['plugin_uninstall']), 'data cleanup participates in the Core uninstall contract');
 
 $check(jyr_normalize_source_path('/old-path') === '/old-path/', 'directory-like source receives a canonical trailing slash');
+$check(jyr_normalize_source_path('old-path') === '/old-path/', 'source accepts omitted leading and trailing slashes');
+$check(jyr_normalize_source_path('old-path/') === '/old-path/', 'source accepts an omitted leading slash');
 $check(jyr_normalize_source_path('/old-file.html') === '/old-file.html', 'file-like source remains slashless');
+$check(jyr_normalize_source_path('old-file.html/') === '/old-file.html', 'file-like source tolerates omitted leading and extra trailing slash');
 $check(jyr_normalize_source_path('/Docs/Old/') === '/Docs/Old/', 'source matching preserves case');
 $check(jyr_normalize_source_path('/old%20path/') === '/old path/', 'safe encoded path text is decoded for matching');
 $check(jyr_normalize_source_path('/') === null, 'homepage cannot be registered as an unresolved source');
@@ -49,7 +52,16 @@ $check(jyr_normalize_source_path("/bad\r\npath/") === null, 'header control byte
 $check(jyr_normalize_source_path('/old/?key=value') === null, 'query strings cannot participate in source matching');
 
 $check(jyr_normalize_target_url('/new-path/') === '/new-path/', 'internal target is accepted');
+$check(jyr_normalize_target_url('new-path') === '/new-path/', 'internal target accepts omitted leading and trailing slashes');
+$check(jyr_normalize_target_url('new-path/') === '/new-path/', 'internal target accepts an omitted leading slash');
+$check(jyr_normalize_target_url('folder/video.mp4') === '/folder/video.mp4', 'nested internal file target remains slashless');
 $check(jyr_normalize_target_url('/new%20path/?fixed=1#details') === '/new%20path/?fixed=1#details', 'encoded target query and fragment are preserved');
+$check(jyr_normalize_target_url('google.com/video.mp4') === null, 'external shorthand still requires explicit opt-in');
+$check(jyr_normalize_target_url('google.com/video.mp4', true) === 'https://google.com/video.mp4', 'external domain shorthand gains a safe HTTPS scheme');
+$check(jyr_normalize_target_url('google.com/video.mp4?fixed=1#details', true) === 'https://google.com/video.mp4?fixed=1#details', 'external shorthand preserves a fixed query and fragment');
+$check(jyr_normalize_target_url('127.1/video.mp4', true) === null, 'invalid numeric external shorthand does not fall back internally');
+$check(jyr_normalize_target_url('foo..example/video.mp4', true) === null, 'malformed external shorthand does not fall back internally');
+$check(jyr_normalize_target_url('/folder.name/video.mp4', true) === '/folder.name/video.mp4', 'a leading slash disambiguates a dotted internal path');
 $check(jyr_normalize_target_url('https://example.test/new/') === null, 'external target requires explicit opt-in');
 $check(jyr_normalize_target_url('https://Example.test/new/?fixed=1#details', true) === 'https://example.test/new/?fixed=1#details', 'HTTPS external target is accepted with explicit opt-in');
 $check(jyr_normalize_target_url('http://example.test/new/', true) === null, 'insecure external target is rejected');

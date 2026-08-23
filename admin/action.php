@@ -49,8 +49,8 @@ try {
         $confirmExternalQuery = !empty($_POST['confirm_external_query']);
         $target = jyr_normalize_target_url($rawTarget, true);
         $enabled = !empty($_POST['enabled']) ? 1 : 0;
-        if ($source === null) throw new DomainException(jyr_t('Enter a valid root-relative source path.'));
-        if ($target === null) throw new DomainException(jyr_t('Enter a valid internal path or HTTPS external URL.'));
+        if ($source === null) throw new DomainException(jyr_t('Enter a valid source path.'));
+        if ($target === null) throw new DomainException(jyr_t('Enter a valid internal path or HTTPS external domain.'));
         $externalPolicyError = jyr_external_target_policy_error($target, $allowExternal, $confirmExternalQuery);
         if ($externalPolicyError === 'same_host') throw new DomainException(jyr_t('Use a root-relative path for destinations on this site.'));
         if ($externalPolicyError === 'external_consent') throw new DomainException(jyr_t('Confirm that this redirect may leave the site.'));

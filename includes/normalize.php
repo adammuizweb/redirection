@@ -10,7 +10,8 @@ function jyr_path_is_file_like(string $path): bool
 function jyr_normalize_source_path(string $input, bool $allowRoot = false): ?string
 {
     $input = trim($input);
-    if ($input === '' || strlen($input) > 2048 || !str_starts_with($input, '/') || str_starts_with($input, '//')) return null;
+    if ($input === '' || strlen($input) > 2048 || str_starts_with($input, '//')) return null;
+    if (!str_starts_with($input, '/')) $input = '/' . $input;
     if (str_contains($input, '?') || str_contains($input, '#') || str_contains($input, '\\')) return null;
     if (preg_match('/[\x00-\x1F\x7F]/', $input) === 1 || preg_match('/%(?![0-9a-f]{2})/i', $input) === 1) return null;
     if (preg_match('/%(?:2f|5c|00|0a|0d)/i', $input) === 1) return null;
@@ -78,8 +79,22 @@ function jyr_normalize_external_target_url(string $input): ?string
 function jyr_normalize_target_url(string $input, bool $allowExternal = false): ?string
 {
     $input = trim($input);
-    if (!str_starts_with($input, '/')) return $allowExternal ? jyr_normalize_external_target_url($input) : null;
-    if ($input === '' || strlen($input) > 2048 || str_starts_with($input, '//')) return null;
+    if ($input === '' || strlen($input) > 2048) return null;
+    if (!str_starts_with($input, '/')) {
+        if (preg_match('/\A[a-z][a-z0-9+.-]*:\/\//i', $input) === 1) {
+            return $allowExternal ? jyr_normalize_external_target_url($input) : null;
+        }
+        if (preg_match('/\A[a-z][a-z0-9+.-]*:/i', $input) === 1) return null;
+
+        $firstSegment = (string)(explode('/', $input, 2)[0] ?? '');
+        $firstSegment = (string)(preg_split('/[?#]/', $firstSegment, 2)[0] ?? '');
+        $domainLike = str_contains($firstSegment, '.');
+        $external = jyr_normalize_external_target_url('https://' . $input);
+        if ($external !== null) return $allowExternal ? $external : null;
+        if ($domainLike) return null;
+        $input = '/' . $input;
+    }
+    if (str_starts_with($input, '//')) return null;
     if (str_contains($input, '\\') || preg_match('/[\x00-\x20\x7F]/', $input) === 1) return null;
 
     $parts = parse_url($input);

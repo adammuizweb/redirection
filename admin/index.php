@@ -122,13 +122,13 @@ $to = min($total, $page * $perPage);
         <input type="hidden" name="id" value="<?= (int)($editRule['id'] ?? 0) ?>">
         <label>
           <span><?= jyr_h(jyr_t('Source path')) ?></span>
-          <input type="text" name="source_path" maxlength="512" required placeholder="/old-path/" value="<?= jyr_h($editRule['source_path'] ?? ($_GET['source'] ?? '')) ?>">
-          <small><?= jyr_h(jyr_t('Exact root-relative path. Query strings are not part of matching.')) ?></small>
+          <input type="text" name="source_path" maxlength="512" required placeholder="old-path" value="<?= jyr_h($editRule['source_path'] ?? ($_GET['source'] ?? '')) ?>">
+          <small><?= jyr_h(jyr_t('Leading and trailing slashes are optional. Query strings are not part of matching.')) ?></small>
         </label>
         <label>
           <span><?= jyr_h(jyr_t('Target URL')) ?></span>
-          <input type="text" name="target_url" maxlength="2048" required placeholder="<?= jyr_h(jyr_t('Example: /new-path/ or https://example.com/new-path/')) ?>" value="<?= jyr_h($editRule['target_url'] ?? '') ?>">
-          <small><?= jyr_h(jyr_t('Use a root-relative path for this site or an absolute HTTPS URL for an external domain.')) ?></small>
+          <input type="text" name="target_url" maxlength="2048" required placeholder="<?= jyr_h(jyr_t('Example: new-path or example.com/video.mp4')) ?>" value="<?= jyr_h($editRule['target_url'] ?? '') ?>">
+          <small><?= jyr_h(jyr_t('Slashes are optional for internal paths. A dotted first segment is treated as a domain; prefix it with / when it is internal.')) ?></small>
         </label>
         <label class="jyr-check"><input type="checkbox" name="allow_external" value="1" autocomplete="off"><span><?= jyr_h(jyr_t('Allow this redirect to leave the site')) ?></span></label>
         <label class="jyr-check"><input type="checkbox" name="confirm_external_query" value="1" autocomplete="off"><span><?= jyr_h(jyr_t('I understand incoming query strings are forwarded to the external domain')) ?></span></label>
