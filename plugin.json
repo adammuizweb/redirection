@@ -1,6 +1,6 @@
 {
   "name": "redirection",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "title": "Redirection",
   "description": "Manage safe exact-path redirects and bounded 404 insights for Jyavani.",
   "author": "Adam Muiz",

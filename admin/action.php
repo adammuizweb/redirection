@@ -44,10 +44,17 @@ try {
     if ($action === 'save') {
         $id = max(0, (int)($_POST['id'] ?? 0));
         $source = jyr_normalize_source_path((string)($_POST['source_path'] ?? ''));
-        $target = jyr_normalize_target_url((string)($_POST['target_url'] ?? ''));
+        $rawTarget = trim((string)($_POST['target_url'] ?? ''));
+        $allowExternal = !empty($_POST['allow_external']);
+        $confirmExternalQuery = !empty($_POST['confirm_external_query']);
+        $target = jyr_normalize_target_url($rawTarget, true);
         $enabled = !empty($_POST['enabled']) ? 1 : 0;
         if ($source === null) throw new DomainException(jyr_t('Enter a valid root-relative source path.'));
-        if ($target === null) throw new DomainException(jyr_t('Enter a valid internal target URL.'));
+        if ($target === null) throw new DomainException(jyr_t('Enter a valid internal path or HTTPS external URL.'));
+        $externalPolicyError = jyr_external_target_policy_error($target, $allowExternal, $confirmExternalQuery);
+        if ($externalPolicyError === 'same_host') throw new DomainException(jyr_t('Use a root-relative path for destinations on this site.'));
+        if ($externalPolicyError === 'external_consent') throw new DomainException(jyr_t('Confirm that this redirect may leave the site.'));
+        if ($externalPolicyError === 'query_consent') throw new DomainException(jyr_t('Confirm that incoming query strings may be forwarded to the external domain.'));
         if (jyr_target_path($target) === $source) throw new DomainException(jyr_t('Source and target cannot resolve to the same path.'));
         if ($enabled === 1 && jyr_source_conflict($pdo, $source) !== null) throw new DomainException(jyr_t('The source path is already owned by an active site route.'));
 

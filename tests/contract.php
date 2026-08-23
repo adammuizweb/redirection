@@ -50,9 +50,24 @@ $check(jyr_normalize_source_path('/old/?key=value') === null, 'query strings can
 
 $check(jyr_normalize_target_url('/new-path/') === '/new-path/', 'internal target is accepted');
 $check(jyr_normalize_target_url('/new%20path/?fixed=1#details') === '/new%20path/?fixed=1#details', 'encoded target query and fragment are preserved');
-$check(jyr_normalize_target_url('https://example.test/new/') === null, 'external target is blocked');
+$check(jyr_normalize_target_url('https://example.test/new/') === null, 'external target requires explicit opt-in');
+$check(jyr_normalize_target_url('https://Example.test/new/?fixed=1#details', true) === 'https://example.test/new/?fixed=1#details', 'HTTPS external target is accepted with explicit opt-in');
+$check(jyr_normalize_target_url('http://example.test/new/', true) === null, 'insecure external target is rejected');
+$check(jyr_normalize_target_url('https://user:pass@example.test/new/', true) === null, 'external target credentials are rejected');
+$check(jyr_normalize_target_url('https://127.0.0.1/new/', true) === null, 'external IP target is rejected');
+$check(jyr_normalize_target_url('https://127.1/new/', true) === null, 'abbreviated IPv4 target is rejected');
+$check(jyr_normalize_target_url('https://0177.0.0.1/new/', true) === null, 'octal-looking IPv4 target is rejected');
 $check(jyr_normalize_target_url('//example.test/new/') === null, 'protocol-relative target is blocked');
 $check(jyr_normalize_target_url('/new path/') === null, 'unsafe target whitespace is rejected');
+$check(jyr_normalize_target_url("https://example.test/new/%0d%0aLocation:evil", true) === null, 'encoded header controls are rejected');
+$check(jyr_target_path('https://example.test/new/') === null, 'external targets do not enter the internal redirect graph');
+unset($_SERVER['HTTP_HOST'], $_SERVER['SERVER_NAME']);
+$check(jyr_external_target_policy_error('https://example.test/new/', true, true) === 'same_host', 'external redirects fail closed when the request host is unavailable');
+$_SERVER['HTTP_HOST'] = 'site.test';
+$check(jyr_external_target_policy_error('https://site.test/new/', true, true) === 'same_host', 'same-host absolute target is rejected before graph bypass');
+$check(jyr_external_target_policy_error('https://example.test/new/', false, true) === 'external_consent', 'external target requires destination consent');
+$check(jyr_external_target_policy_error('https://example.test/new/', true, false) === 'query_consent', 'external target requires query-forwarding consent');
+$check(jyr_external_target_policy_error('https://example.test/new/', true, true) === null, 'external target policy accepts complete consent');
 
 if (in_array('sqlite', PDO::getAvailableDrivers(), true)) {
     $pdo = new PDO('sqlite::memory:');
@@ -82,6 +97,13 @@ if (in_array('sqlite', PDO::getAvailableDrivers(), true)) {
     $insertRule('/rewrite/', '/target/');
     $_SERVER['REQUEST_URI'] = '/de/rewrite/';
     $check(jyr_unresolved_redirect('', 'rewrite', $pdo) === '/target/', 'runtime matching honors the semantic path supplied by Core');
+    $insertRule('/outside/', 'https://example.test/destination/?fixed=1#details');
+    $_SERVER['HTTP_HOST'] = 'opencode.test';
+    $_SERVER['REQUEST_URI'] = '/outside/?campaign=test';
+    $check(jyr_unresolved_redirect('', 'outside', $pdo) === 'https://example.test/destination/?fixed=1#details', 'runtime returns a validated external target for Core query forwarding');
+    $insertRule('/same-host/', 'https://opencode.test/same-host/');
+    $_SERVER['REQUEST_URI'] = '/same-host/';
+    $check(jyr_unresolved_redirect('', 'same-host', $pdo) === '', 'runtime rejects a stored same-host absolute redirect');
     $_SERVER['REQUEST_METHOD'] = 'POST';
     $check(jyr_unresolved_redirect('', 'a', $pdo) === '', 'non-idempotent requests are not redirected');
 

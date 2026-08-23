@@ -14,8 +14,9 @@ function jyr_unresolved_redirect(string $existing, string $path, PDO $pdo): stri
         $rule = jyr_find_active_rule($pdo, $source);
         if (!$rule || jyr_source_conflict($pdo, $source) !== null) return '';
 
-        $target = jyr_normalize_target_url((string)$rule['target_url']);
-        if ($target === null || jyr_target_path($target) === $source || !jyr_redirect_chain_is_safe($pdo, $source, $target)) return '';
+        $target = jyr_normalize_target_url((string)$rule['target_url'], true);
+        if ($target === null || jyr_external_target_policy_error($target, true, true) !== null
+            || jyr_target_path($target) === $source || !jyr_redirect_chain_is_safe($pdo, $source, $target)) return '';
 
         try {
             jyr_increment_hit($pdo, (int)$rule['id']);

@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 if (!defined('BACKEND_PATH')) return;
 
-const JYR_VERSION = '1.0.0';
+const JYR_VERSION = '1.1.0';
 const JYR_SCHEMA_VERSION = '1';
 const JYR_RULES_TABLE = 'jyr_redirects';
 const JYR_LOGS_TABLE = 'jyr_404_paths';

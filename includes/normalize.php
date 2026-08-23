@@ -38,10 +38,48 @@ function jyr_encode_path(string $decodedPath): string
     return '/' . implode('/', $segments) . ($trailing ? '/' : '');
 }
 
-function jyr_normalize_target_url(string $input): ?string
+function jyr_normalize_external_target_url(string $input): ?string
 {
     $input = trim($input);
-    if ($input === '' || strlen($input) > 2048 || !str_starts_with($input, '/') || str_starts_with($input, '//')) return null;
+    if ($input === '' || strlen($input) > 2048 || str_starts_with($input, '//')) return null;
+    if (str_contains($input, '\\') || preg_match('/[\x00-\x20\x7F]/', $input) === 1) return null;
+    if (preg_match('/%(?![0-9a-f]{2})/i', $input) === 1 || preg_match('/%(?:00|0a|0d)/i', $input) === 1) return null;
+
+    $parts = parse_url($input);
+    if (!is_array($parts) || strtolower((string)($parts['scheme'] ?? '')) !== 'https'
+        || !isset($parts['host']) || isset($parts['user']) || isset($parts['pass']) || isset($parts['port'])) return null;
+
+    $host = strtolower(rtrim((string)$parts['host'], '.'));
+    $labels = explode('.', $host);
+    $numericHost = $labels !== [] && array_reduce(
+        $labels,
+        static fn(bool $numeric, string $label): bool => $numeric && preg_match('/\A(?:0x[0-9a-f]+|[0-9]+)\z/i', $label) === 1,
+        true
+    );
+    if ($host === '' || !str_contains($host, '.') || filter_var($host, FILTER_VALIDATE_IP) !== false
+        || $numericHost || filter_var($host, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME) === false) return null;
+
+    $path = (string)($parts['path'] ?? '/');
+    if ($path === '') $path = '/';
+    if (!str_starts_with($path, '/') || str_starts_with($path, '//')
+        || preg_match('/%(?:2f|5c)/i', $path) === 1) return null;
+    $decodedPath = rawurldecode($path);
+    if (!mb_check_encoding($decodedPath, 'UTF-8') || preg_match('/[\x00-\x20\x7F]/', $decodedPath) === 1
+        || str_contains($decodedPath, '\\')) return null;
+    $segments = explode('/', trim($decodedPath, '/'));
+    if (in_array('.', $segments, true) || in_array('..', $segments, true)) return null;
+
+    $target = 'https://' . $host . $path;
+    if (isset($parts['query']) && $parts['query'] !== '') $target .= '?' . $parts['query'];
+    if (isset($parts['fragment']) && $parts['fragment'] !== '') $target .= '#' . $parts['fragment'];
+    return strlen($target) <= 2048 ? $target : null;
+}
+
+function jyr_normalize_target_url(string $input, bool $allowExternal = false): ?string
+{
+    $input = trim($input);
+    if (!str_starts_with($input, '/')) return $allowExternal ? jyr_normalize_external_target_url($input) : null;
+    if ($input === '' || strlen($input) > 2048 || str_starts_with($input, '//')) return null;
     if (str_contains($input, '\\') || preg_match('/[\x00-\x20\x7F]/', $input) === 1) return null;
 
     $parts = parse_url($input);
@@ -56,10 +94,42 @@ function jyr_normalize_target_url(string $input): ?string
     return strlen($target) <= 2048 ? $target : null;
 }
 
+function jyr_target_is_external(string $target): bool
+{
+    $parts = parse_url($target);
+    return is_array($parts) && isset($parts['scheme'], $parts['host']);
+}
+
+function jyr_target_is_current_host(string $target): bool
+{
+    if (!jyr_target_is_external($target)) return false;
+    $targetHost = strtolower(rtrim((string)(parse_url($target, PHP_URL_HOST) ?? ''), '.'));
+    if ($targetHost === '') return true;
+
+    $currentHosts = [];
+    foreach (['HTTP_HOST', 'SERVER_NAME'] as $key) {
+        $requestHost = trim((string)($_SERVER[$key] ?? ''));
+        if ($requestHost === '') continue;
+        $currentHost = strtolower(rtrim((string)(parse_url('https://' . $requestHost, PHP_URL_HOST) ?? ''), '.'));
+        if ($currentHost !== '') $currentHosts[$currentHost] = true;
+    }
+    if ($currentHosts === []) return true;
+    return isset($currentHosts[$targetHost]);
+}
+
+function jyr_external_target_policy_error(string $target, bool $allowExternal, bool $confirmExternalQuery): ?string
+{
+    if (!jyr_target_is_external($target)) return null;
+    if (jyr_target_is_current_host($target)) return 'same_host';
+    if (!$allowExternal) return 'external_consent';
+    if (!$confirmExternalQuery) return 'query_consent';
+    return null;
+}
+
 function jyr_target_path(string $target): ?string
 {
     $parts = parse_url($target);
-    if (!is_array($parts)) return null;
+    if (!is_array($parts) || isset($parts['scheme']) || isset($parts['host'])) return null;
     return jyr_normalize_source_path((string)($parts['path'] ?? '/'), true);
 }
 

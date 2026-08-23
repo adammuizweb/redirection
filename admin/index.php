@@ -100,7 +100,7 @@ $to = min($total, $page * $perPage);
     <div class="jyr-policy">
       <strong>301</strong>
       <span><?= jyr_h(jyr_t('Permanent redirects')) ?></span>
-      <small><?= jyr_h(jyr_t('Request query strings are preserved by Jyavani Core.')) ?></small>
+      <small><?= jyr_h(jyr_t('Internal redirects preserve query strings. External redirects require explicit forwarding consent.')) ?></small>
     </div>
   </header>
 
@@ -127,9 +127,11 @@ $to = min($total, $page * $perPage);
         </label>
         <label>
           <span><?= jyr_h(jyr_t('Target URL')) ?></span>
-          <input type="text" name="target_url" maxlength="2048" required placeholder="/new-path/" value="<?= jyr_h($editRule['target_url'] ?? '') ?>">
-          <small><?= jyr_h(jyr_t('Internal root-relative URL. External destinations are intentionally blocked.')) ?></small>
+          <input type="text" name="target_url" maxlength="2048" required placeholder="<?= jyr_h(jyr_t('Example: /new-path/ or https://example.com/new-path/')) ?>" value="<?= jyr_h($editRule['target_url'] ?? '') ?>">
+          <small><?= jyr_h(jyr_t('Use a root-relative path for this site or an absolute HTTPS URL for an external domain.')) ?></small>
         </label>
+        <label class="jyr-check"><input type="checkbox" name="allow_external" value="1" autocomplete="off"><span><?= jyr_h(jyr_t('Allow this redirect to leave the site')) ?></span></label>
+        <label class="jyr-check"><input type="checkbox" name="confirm_external_query" value="1" autocomplete="off"><span><?= jyr_h(jyr_t('I understand incoming query strings are forwarded to the external domain')) ?></span></label>
         <label class="jyr-check"><input type="checkbox" name="enabled" value="1" <?= !$editRule || !empty($editRule['enabled']) ? 'checked' : '' ?>><span><?= jyr_h(jyr_t('Enable this redirect')) ?></span></label>
         <button class="jyr-primary" type="submit"><?= jyr_h($editRule ? jyr_t('Update redirect') : jyr_t('Create redirect')) ?></button>
       </form>

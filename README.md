@@ -5,9 +5,9 @@ Redirection is a focused Jyavani plugin for managing exact-path redirects and re
 ## Features
 
 - Exact, case-sensitive source path matching.
-- Safe internal root-relative targets.
+- Safe internal root-relative targets and explicitly approved HTTPS external destinations.
 - Permanent `301` redirects through the native Jyavani redirect hook.
-- Request query-string preservation through Jyavani Core.
+- Request query-string preservation through Jyavani Core, with explicit consent for external forwarding.
 - Atomic hit counters and last-hit timestamps.
 - Enable, disable, delete, and reset-hit bulk actions.
 - Save-time and runtime redirect-loop protection.
@@ -45,11 +45,14 @@ Source paths:
 
 Target URLs:
 
-- Must be internal and root-relative, such as `/new-section/`.
+- May be internal and root-relative, such as `/new-section/`.
+- May use an absolute HTTPS domain after both external-destination and query-forwarding consent are checked.
+- External URLs cannot contain credentials, custom ports, IP hosts, protocol-relative syntax, or unsafe control bytes.
+- Absolute URLs for the current host are rejected; use a root-relative target so loop detection remains effective.
 - May include an encoded query string or fragment.
-- Cannot point back into a redirect cycle.
+- Internal targets cannot point back into a redirect cycle.
 - Redirect chains longer than 16 hops are rejected.
-- External destinations are blocked in version 1.0.
+- Jyavani Core appends the incoming request query string to every redirect target. External redirects therefore require an explicit acknowledgement that those values will leave the site.
 
 ## 404 Privacy
 
@@ -79,7 +82,7 @@ php tests/package_contract.php
 Build and inspect a flat candidate package:
 
 ```bash
-php tools/build-package.php /tmp/redirection-1.0.0.zip
+php tools/build-package.php /tmp/redirection-1.1.0.zip
 ```
 
 The repository is the authoritative development source. Store publisher copies and installed copies are release or runtime derivatives.

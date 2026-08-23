@@ -12,6 +12,7 @@ $action = (string)file_get_contents($root . '/admin/action.php');
 $index = (string)file_get_contents($root . '/admin/index.php');
 $runtime = (string)file_get_contents($root . '/includes/runtime.php');
 $schema = (string)file_get_contents($root . '/includes/schema.php');
+$normalize = (string)file_get_contents($root . '/includes/normalize.php');
 
 $check(str_contains($action, "defined('DASHBOARD_CONTEXT')"), 'mutation endpoint requires dashboard context');
 $check(str_contains($action, "adiwira_require_permission(\$pdo, 'plugin.redirection.rules.manage', false)"), 'mutation endpoint repeats the permission guard');
@@ -24,6 +25,11 @@ $check(str_contains($action, "!authorization_audit") || str_contains($action, "|
 $check(str_contains($index, 'jyr_h('), 'dashboard output uses the plugin escaping boundary');
 $check(str_contains($runtime, "['GET', 'HEAD']"), 'runtime redirects only GET and HEAD');
 $check(str_contains($runtime, 'jyr_source_conflict'), 'runtime yields to routes created after a rule');
+$check(str_contains($runtime, 'jyr_normalize_target_url((string)$rule[\'target_url\'], true)'), 'runtime revalidates stored internal and external targets');
+$check(str_contains($action, 'jyr_external_target_policy_error') && str_contains($action, "allow_external") && str_contains($action, "confirm_external_query"), 'external redirects enforce destination and query-forwarding consent');
+$check(!str_contains($index, '$editTargetIsExternal') && str_contains($index, 'name="allow_external" value="1" autocomplete="off"'), 'external consent is not preselected while editing');
+$check(str_contains($normalize, "!== 'https'") && str_contains($normalize, 'FILTER_VALIDATE_DOMAIN'), 'external targets require a validated HTTPS domain');
+$check(str_contains($normalize, "isset(\$parts['user'])") && str_contains($normalize, "isset(\$parts['pass'])"), 'external target credentials are rejected');
 $check(str_contains($runtime, 'http_response_code() !== 404'), '404 capture records only final 404 responses');
 $check(str_contains($schema, 'jyr_redirects') && str_contains($schema, 'jyr_404_paths'), 'schema owns only prefixed plugin tables');
 $check(str_contains($schema, 'BINARY(32)'), 'indexed path identity uses fixed hashes compatible with MySQL 5.7 limits');
