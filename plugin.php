@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 if (!defined('BACKEND_PATH')) return;
 
-const JYR_VERSION = '1.2.0';
+const JYR_VERSION = '1.2.1';
 const JYR_SCHEMA_VERSION = '1';
 const JYR_RULES_TABLE = 'jyr_redirects';
 const JYR_LOGS_TABLE = 'jyr_404_paths';
@@ -38,6 +38,10 @@ require_once __DIR__ . '/includes/normalize.php';
 require_once __DIR__ . '/includes/repository.php';
 require_once __DIR__ . '/includes/runtime.php';
 
+if (function_exists('register_frontend_route')) {
+    register_frontend_route('jyr-redirect-dispatch', 'jyr_content_override_dispatch', ['match' => 'exact', 'methods' => ['GET', 'HEAD']]);
+}
+
 function jyr_bootstrap(): void
 {
     $pdo = $GLOBALS['pdo'] ?? null;
@@ -63,4 +67,5 @@ add_action('plugins_loaded', 'jyr_bootstrap');
 add_action('init', 'jyr_register_404_capture');
 add_action('admin_head', 'jyr_admin_assets');
 add_action('plugin_uninstall', 'jyr_uninstall');
+add_filter('router_path', 'jyr_content_override_path', PHP_INT_MAX);
 add_filter('unresolved_content_redirect_url', 'jyr_unresolved_redirect', PHP_INT_MAX);

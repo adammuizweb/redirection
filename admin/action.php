@@ -56,7 +56,7 @@ try {
         if ($externalPolicyError === 'external_consent') throw new DomainException(jyr_t('Confirm that this redirect may leave the site.'));
         if ($externalPolicyError === 'query_consent') throw new DomainException(jyr_t('Confirm that incoming query strings may be forwarded to the external domain.'));
         if (jyr_target_path($target) === $source) throw new DomainException(jyr_t('Source and target cannot resolve to the same path.'));
-        if ($enabled === 1 && jyr_source_conflict($pdo, $source) !== null) throw new DomainException(jyr_t('The source path is already owned by an active site route.'));
+        if ($enabled === 1 && jyr_redirect_source_blocker($pdo, $source) !== null) throw new DomainException(jyr_t('The source path is already owned by a protected site route.'));
 
         $pdo->beginTransaction();
         jyr_all_rules($pdo, true);
@@ -121,8 +121,8 @@ try {
         }
         if ($action === 'enable') {
             foreach ($lockedRules as $rule) {
-                if (in_array((int)$rule['id'], $ids, true) && jyr_source_conflict($pdo, (string)$rule['source_path']) !== null) {
-                    throw new DomainException(jyr_t('One or more source paths are owned by active site routes.'));
+                if (in_array((int)$rule['id'], $ids, true) && jyr_redirect_source_blocker($pdo, (string)$rule['source_path']) !== null) {
+                    throw new DomainException(jyr_t('One or more source paths are owned by protected site routes.'));
                 }
             }
         }

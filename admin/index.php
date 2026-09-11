@@ -95,7 +95,7 @@ $to = min($total, $page * $perPage);
     <div>
       <span class="jyr-kicker"><?= jyr_h(jyr_t('ROUTE CONTROL')) ?></span>
       <h1><?= jyr_h(jyr_t('Redirection')) ?></h1>
-      <p><?= jyr_h(jyr_t('Guide unresolved paths to their intended destination and learn which public paths return 404.')) ?></p>
+      <p><?= jyr_h(jyr_t('Guide paths to their intended destination, override content when needed, and learn which public paths return 404.')) ?></p>
     </div>
     <div class="jyr-policy">
       <strong>301</strong>
@@ -123,7 +123,7 @@ $to = min($total, $page * $perPage);
         <label>
           <span><?= jyr_h(jyr_t('Source path')) ?></span>
           <input type="text" name="source_path" maxlength="512" required placeholder="old-path" value="<?= jyr_h($editRule['source_path'] ?? ($_GET['source'] ?? '')) ?>">
-          <small><?= jyr_h(jyr_t('Leading and trailing slashes are optional. Query strings are not part of matching.')) ?></small>
+          <small><?= jyr_h(jyr_t('Leading and trailing slashes are optional. Query strings are not part of matching. Existing content at this exact path will be overridden.')) ?></small>
         </label>
         <label>
           <span><?= jyr_h(jyr_t('Target URL')) ?></span>

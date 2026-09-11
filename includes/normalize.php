@@ -148,19 +148,20 @@ function jyr_target_path(string $target): ?string
     return jyr_normalize_source_path((string)($parts['path'] ?? '/'), true);
 }
 
-function jyr_source_conflict(PDO $pdo, string $source): ?array
+function jyr_source_conflict(PDO $pdo, string $source, string $locale = ''): ?array
 {
     $path = trim($source, '/');
     try {
         if (function_exists('content_route_is_valid_path') && content_route_is_valid_path($path)
             && function_exists('content_route_path_conflict')) {
-            return content_route_path_conflict($pdo, $path);
+            return content_route_path_conflict($pdo, $path, $locale);
         }
 
         $first = strtolower((string)(explode('/', $path, 2)[0] ?? ''));
         if (in_array($first, ['author', 'private', 'plugins', 'posts', 'static'], true)
             || preg_match('/^\d{4}$/', $first) === 1
-            || strtolower($path) === 'sw.js' || str_starts_with(strtolower($path), 'sitemap')) {
+            || in_array(strtolower($path), ['sw.js', 'robots.txt'], true)
+            || str_starts_with(strtolower($path), 'sitemap')) {
             return ['type' => 'core_route'];
         }
         foreach ([
@@ -193,6 +194,46 @@ function jyr_source_conflict(PDO $pdo, string $source): ?array
         error_log('[redirection] route conflict check failed: ' . $e->getMessage());
         return ['type' => 'unknown'];
     }
+}
+
+function jyr_content_route_can_be_overridden(?array $conflict): bool
+{
+    return in_array((string)($conflict['type'] ?? ''), ['content_route', 'post_slug', 'post_permalink'], true);
+}
+
+function jyr_plugin_route_conflict(string $source): ?array
+{
+    $path = trim($source, '/');
+    if ($path === '') return null;
+
+    if (function_exists('get_frontend_route_definitions')) {
+        foreach ((array)get_frontend_route_definitions() as $route) {
+            if (!is_array($route)) continue;
+            $routePath = trim((string)($route['path'] ?? ''), '/');
+            $matches = ($route['match'] ?? 'prefix') === 'exact'
+                ? $path === $routePath
+                : ($routePath !== '' && ($path === $routePath || str_starts_with($path, $routePath . '/')));
+            if ($matches) return ['type' => 'plugin_route', 'value' => $routePath];
+        }
+        return null;
+    }
+
+    if (function_exists('get_frontend_routes')) {
+        foreach (array_keys((array)get_frontend_routes()) as $prefix) {
+            $prefix = trim((string)$prefix, '/');
+            if ($prefix !== '' && ($path === $prefix || str_starts_with($path, $prefix . '/'))) {
+                return ['type' => 'plugin_route', 'value' => $prefix];
+            }
+        }
+    }
+    return null;
+}
+
+function jyr_redirect_source_blocker(PDO $pdo, string $source): ?array
+{
+    $conflict = jyr_source_conflict($pdo, $source);
+    if ($conflict !== null && !jyr_content_route_can_be_overridden($conflict)) return $conflict;
+    return jyr_plugin_route_conflict($source);
 }
 
 function jyr_request_source_path(): ?string

@@ -20,11 +20,15 @@ $check(str_contains($action, "REQUEST_METHOD") && str_contains($action, "!== 'PO
 $check(str_contains($action, 'csrf_check'), 'mutation endpoint validates CSRF');
 $check(str_contains($action, 'beginTransaction') && str_contains($action, 'rollBack'), 'rule mutations use transactional rollback');
 $check(str_contains($action, 'jyr_rules_have_loop'), 'save and enable operations validate redirect loops');
-$check(str_contains($action, 'jyr_source_conflict'), 'new sources cannot shadow active site routes');
+$check(str_contains($action, 'jyr_redirect_source_blocker'), 'new sources cannot shadow protected site routes');
 $check(str_contains($action, "!authorization_audit") || str_contains($action, "|| !authorization_audit"), 'authorization audit failure blocks sensitive mutations');
 $check(str_contains($index, 'jyr_h('), 'dashboard output uses the plugin escaping boundary');
 $check(str_contains($runtime, "['GET', 'HEAD']"), 'runtime redirects only GET and HEAD');
-$check(str_contains($runtime, 'jyr_source_conflict'), 'runtime yields to routes created after a rule');
+$check(str_contains($runtime, 'jyr_source_conflict'), 'unresolved runtime yields to routes created after a rule');
+$check(str_contains((string)file_get_contents($root . '/plugin.php'), "'methods' => ['GET', 'HEAD']")
+    && str_contains($runtime, "return 'jyr-redirect-dispatch'"), 'content overrides use one static exact dispatcher route');
+$check(str_contains($normalize, "['content_route', 'post_slug', 'post_permalink']")
+    && str_contains($normalize, 'jyr_plugin_route_conflict'), 'only content ownership is overridable while plugin routes remain protected');
 $check(str_contains($runtime, 'jyr_normalize_target_url((string)$rule[\'target_url\'], true)'), 'runtime revalidates stored internal and external targets');
 $check(str_contains($action, 'jyr_external_target_policy_error') && str_contains($action, "allow_external") && str_contains($action, "confirm_external_query"), 'external redirects enforce destination and query-forwarding consent');
 $check(!str_contains($index, '$editTargetIsExternal') && str_contains($index, 'name="allow_external" value="1" autocomplete="off"'), 'external consent is not preselected while editing');

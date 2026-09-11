@@ -1,24 +1,25 @@
 # Redirection
 
-Redirection is a focused Jyavani plugin for managing exact-path redirects and reviewing bounded 404 insights. It integrates at Jyavani's unresolved-route boundary, so valid Core, content, authentication, static, and plugin routes retain priority.
+Redirection is a focused Jyavani plugin for managing exact-path redirects and reviewing bounded 404 insights. Rules may intentionally override an exact article, page, or Theme Template path, while Core, authentication, static, collection, and other plugin routes retain priority.
 
 ## Features
 
 - Exact, case-sensitive source path matching.
+- Intentional overrides for exact article, page, and Theme Template paths.
 - Safe internal root-relative targets and explicitly approved HTTPS external destinations.
 - Permanent `301` redirects through the native Jyavani redirect hook.
 - Request query-string preservation through Jyavani Core, with explicit consent for external forwarding.
 - Atomic hit counters and last-hit timestamps.
 - Enable, disable, delete, and reset-hit bulk actions.
 - Save-time and runtime redirect-loop protection.
-- Runtime protection against routes created after a redirect rule.
+- Runtime protection against protected routes created after a redirect rule.
 - Privacy-conscious 404 aggregation with a 10,000-path cap.
 - English, Indonesian, and German dashboard copy.
 - Native Jyavani permissions, CSRF protection, PRG notifications, and authorization audit events.
 
 ## Requirements
 
-- Jyavani CMS 2.3.74 or newer.
+- Jyavani CMS 2.3.91 or newer.
 - PHP 8.1 or newer.
 - PDO MySQL, JSON, and mbstring extensions.
 - MySQL 5.7 or a compatible MariaDB release.
@@ -34,7 +35,7 @@ The plugin initializes its own `jyr_redirects` and `jyr_404_paths` tables. No Co
 
 ## Redirect Semantics
 
-Jyavani Core 2.3.74 exposes unresolved redirects as permanent `301` responses and appends the incoming request query string. Redirection deliberately follows that contract instead of sending headers from inside a filter.
+Jyavani Core 2.3.74 exposes unresolved redirects as permanent `301` responses and appends the incoming request query string. Redirection uses that boundary for missing paths and a protected exact dispatcher route when a rule intentionally overrides existing content.
 
 Source paths:
 
@@ -42,7 +43,8 @@ Source paths:
 - File-like paths such as `adam.html` normalize to `/adam.html` without a trailing slash.
 - Match exact paths only and preserve letter case.
 - Cannot include query strings or fragments.
-- Cannot shadow active Jyavani routes.
+- May shadow an exact article, page, or Theme Template path by creating and enabling the rule.
+- Cannot shadow Core, authentication, static, collection, root-category, or other plugin routes.
 
 Target URLs:
 
@@ -86,7 +88,7 @@ php tests/package_contract.php
 Build and inspect a flat candidate package:
 
 ```bash
-php tools/build-package.php /tmp/redirection-1.2.0.zip
+php tools/build-package.php /tmp/redirection-1.2.1.zip
 ```
 
 The repository is the authoritative development source. Store publisher copies and installed copies are release or runtime derivatives.

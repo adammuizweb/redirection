@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.1 - 2026-09-10
+
+- Allow exact redirect rules to intentionally override article, page, and Theme Template paths.
+- Keep Core, authentication, static, collection, root-category, and other plugin routes protected.
+
 ## 1.2.0 - 2026-08-23
 
 - Accept source and internal target paths with omitted leading or trailing slashes.

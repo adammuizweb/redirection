@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 $root = dirname(__DIR__);
 $GLOBALS['_jyr_hooks'] = [];
+$GLOBALS['_jyr_routes'] = [];
 $GLOBALS['_jyr_locale'] = 'en';
 
 define('BACKEND_PATH', '/tmp');
@@ -10,6 +11,18 @@ function __(string $source): string { return $source; }
 function get_locale(): string { return (string)$GLOBALS['_jyr_locale']; }
 function add_action(string $name, callable $callback, int $priority = 10): void { $GLOBALS['_jyr_hooks'][$name][] = $callback; }
 function add_filter(string $name, callable $callback, int $priority = 10): void { $GLOBALS['_jyr_hooks'][$name][] = $callback; }
+function register_frontend_route(string $path, callable|string $handler, array $options = []): bool {
+    $GLOBALS['_jyr_routes'][] = ['path' => trim($path, '/'), 'handler' => $handler] + $options;
+    return true;
+}
+function get_frontend_route_definitions(): array { return $GLOBALS['_jyr_routes']; }
+function plugin_frontend_route_normalize_path(string $path): ?string {
+    $path = trim($path, '/');
+    return preg_match('/\A[A-Za-z0-9._~-]+(?:\/[A-Za-z0-9._~-]+)*\z/D', $path) === 1 ? $path : null;
+}
+function url_append_query_string(string $target, string $query): string {
+    return $query === '' ? $target : $target . (str_contains($target, '?') ? '&' : '?') . $query;
+}
 
 require_once $root . '/plugin.php';
 
@@ -23,7 +36,7 @@ $manifest = json_decode((string)file_get_contents($root . '/plugin.json'), true,
 $manifestObject = json_decode((string)file_get_contents($root . '/plugin.json'), false, 512, JSON_THROW_ON_ERROR);
 $check(($manifest['name'] ?? null) === 'redirection', 'plugin slug is stable');
 $check(($manifest['version'] ?? null) === JYR_VERSION, 'manifest and runtime versions match');
-$check(($manifest['requires']['jyavani'] ?? null) === '>=2.3.74', 'minimum Core version provides the unresolved redirect hook');
+$check(($manifest['requires']['jyavani'] ?? null) === '>=2.3.91', 'minimum Core version provides exact method-aware frontend routes');
 $check(in_array('pdo_mysql', $manifest['requires']['extensions'] ?? [], true), 'MySQL PDO driver requirement is explicit');
 $check(($manifestObject->requires->plugins ?? null) instanceof stdClass, 'plugin dependencies use an object map');
 $permission = $manifest['permissions'][0] ?? [];
@@ -34,6 +47,9 @@ $check(($manifest['admin']['pages'][0]['permission'] ?? '') === $permission['key
 $check(($manifest['admin']['pages'][1]['hidden'] ?? false) === true, 'mutation route is hidden from navigation');
 $check(isset($GLOBALS['_jyr_hooks']['unresolved_content_redirect_url']), 'unresolved redirect filter is registered');
 $check(isset($GLOBALS['_jyr_hooks']['init']), 'bounded 404 capture is registered on init');
+$check(isset($GLOBALS['_jyr_hooks']['router_path'])
+    && ($GLOBALS['_jyr_routes'][0]['path'] ?? '') === 'jyr-redirect-dispatch'
+    && ($GLOBALS['_jyr_routes'][0]['methods'] ?? []) === ['GET', 'HEAD'], 'one static GET/HEAD dispatcher route handles content overrides');
 $check(isset($GLOBALS['_jyr_hooks']['plugin_uninstall']), 'data cleanup participates in the Core uninstall contract');
 
 $check(jyr_normalize_source_path('/old-path') === '/old-path/', 'directory-like source receives a canonical trailing slash');
@@ -135,6 +151,18 @@ if (in_array('sqlite', PDO::getAvailableDrivers(), true)) {
     $check(jyr_rules_have_loop($pdo), 'chain bounds do not depend on database row order');
     $check(jyr_source_conflict($pdo, '/posts/feed.xml') !== null, 'legacy posts collection remains reserved for generic source paths');
     $check(jyr_source_conflict($pdo, '/2026/report.pdf') !== null, 'year archive prefixes remain reserved for generic source paths');
+    $check(jyr_redirect_source_blocker($pdo, '/robots.txt') !== null, 'crawler policy remains a protected Core route');
+    $pdo->exec("INSERT INTO posts (slug,type,is_deleted) VALUES ('faq','page',0)");
+    $insertRule('/faq/', 'https://example.test/faq');
+    $check(jyr_content_route_can_be_overridden(jyr_source_conflict($pdo, '/faq/')), 'an exact content path is an allowed redirect override');
+    $check(jyr_redirect_source_blocker($pdo, '/faq/') === null, 'content ownership does not block an explicit redirect rule');
+    $GLOBALS['pdo'] = $pdo;
+    $_SERVER['REQUEST_METHOD'] = 'GET';
+    $check(jyr_content_override_path('faq') === 'jyr-redirect-dispatch', 'an exact content rule is routed through the static redirect dispatcher');
+    $GLOBALS['_jyr_routes'][] = ['path' => 'account', 'handler' => 'other_plugin', 'match' => 'prefix', 'methods' => ['GET']];
+    $check(jyr_redirect_source_blocker($pdo, '/account/profile/') !== null, 'another plugin frontend route remains protected');
+    $GLOBALS['_jyr_routes'][] = ['path' => 'mutations', 'handler' => 'other_plugin_post', 'match' => 'prefix', 'methods' => ['POST']];
+    $check(jyr_plugin_route_conflict('/mutations/item/') !== null, 'POST-only plugin routes remain protected from an exact redirect route');
 } else {
     $check(true, 'SQLite behavior checks skipped because pdo_sqlite is unavailable');
 }
