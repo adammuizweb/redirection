@@ -21,7 +21,7 @@ $tab = (string)($_GET['tab'] ?? 'rules');
 if (!in_array($tab, ['rules', '404s'], true)) $tab = 'rules';
 $query = mb_substr(trim((string)($_GET['q'] ?? '')), 0, 160);
 $page = max(1, (int)($_GET['p'] ?? 1));
-$perPage = 25;
+$perPage = jyr_admin_page_size($_GET['per_page'] ?? null);
 
 $pageUrl = static function (array $overrides = []) use ($baseUrl): string {
     $params = array_merge($_GET, $overrides);
@@ -105,8 +105,8 @@ $to = min($total, $page * $perPage);
   </header>
 
   <nav class="jyr-tabs" aria-label="<?= jyr_h(jyr_t('Redirection sections')) ?>">
-    <a class="<?= $tab === 'rules' ? 'is-active' : '' ?>" <?= $tab === 'rules' ? 'aria-current="page"' : '' ?> href="<?= jyr_h($baseUrl) ?>"><?= jyr_h(jyr_t('Redirects')) ?></a>
-    <a class="<?= $tab === '404s' ? 'is-active' : '' ?>" <?= $tab === '404s' ? 'aria-current="page"' : '' ?> href="<?= jyr_h($baseUrl . '&tab=404s') ?>"><?= jyr_h(jyr_t('404 Insights')) ?></a>
+    <a class="<?= $tab === 'rules' ? 'is-active' : '' ?>" <?= $tab === 'rules' ? 'aria-current="page"' : '' ?> href="<?= jyr_h($pageUrl(['tab' => null, 'q' => null, 'status' => null, 'p' => null, 'edit' => null])) ?>"><?= jyr_h(jyr_t('Redirects')) ?></a>
+    <a class="<?= $tab === '404s' ? 'is-active' : '' ?>" <?= $tab === '404s' ? 'aria-current="page"' : '' ?> href="<?= jyr_h($pageUrl(['tab' => '404s', 'q' => null, 'status' => null, 'p' => null, 'edit' => null])) ?>"><?= jyr_h(jyr_t('404 Insights')) ?></a>
   </nav>
 
   <?php if ($tab === 'rules'): ?>
@@ -147,6 +147,11 @@ $to = min($total, $page * $perPage);
           <option value="<?= jyr_h($value) ?>" <?= (($_GET['status'] ?? 'all') === $value) ? 'selected' : '' ?>><?= jyr_h($label) ?></option>
           <?php endforeach; ?>
         </select>
+        <select name="per_page" aria-label="<?= jyr_h(jyr_t('Items per page')) ?>">
+          <?php foreach (JYR_ADMIN_PAGE_SIZES as $size): ?>
+          <option value="<?= $size ?>" <?= $perPage === $size ? 'selected' : '' ?>><?= jyr_h(jyr_t('%d per page', $size)) ?></option>
+          <?php endforeach; ?>
+        </select>
         <button type="submit"><?= jyr_h(jyr_t('Filter')) ?></button>
       </form>
 
@@ -167,15 +172,15 @@ $to = min($total, $page * $perPage);
             <thead><tr><th scope="col"><span class="sr-only"><?= jyr_h(jyr_t('Select')) ?></span></th><th scope="col"><?= jyr_h(jyr_t('Route')) ?></th><th scope="col"><?= jyr_h(jyr_t('State')) ?></th><th scope="col"><?= jyr_h(jyr_t('Hits')) ?></th><th scope="col"><?= jyr_h(jyr_t('Last hit')) ?></th><th scope="col"><?= jyr_h(jyr_t('Action')) ?></th></tr></thead>
             <tbody>
             <?php if ($rules === []): ?>
-              <tr><td colspan="6" class="jyr-empty-row"><?= jyr_h(jyr_t('No redirect rules found.')) ?></td></tr>
+              <tr class="jyr-empty-table-row"><td colspan="6" class="jyr-empty-row"><?= jyr_h(jyr_t('No redirect rules found.')) ?></td></tr>
             <?php else: foreach ($rules as $rule): ?>
               <tr>
-                <td><input type="checkbox" name="selected_ids[]" value="<?= (int)$rule['id'] ?>" aria-label="<?= jyr_h(jyr_t('Select redirect')) ?>"></td>
-                <td><code><?= jyr_h($rule['source_path']) ?></code><span class="jyr-arrow">&rarr;</span><code><?= jyr_h($rule['target_url']) ?></code></td>
-                <td><span class="jyr-badge <?= !empty($rule['enabled']) ? 'is-on' : 'is-off' ?>"><?= jyr_h(!empty($rule['enabled']) ? jyr_t('Enabled') : jyr_t('Disabled')) ?></span></td>
-                <td><?= number_format((int)$rule['hit_count']) ?></td>
-                <td><?= jyr_h($rule['last_hit_at'] ?: jyr_t('Never')) ?></td>
-                <td><a href="<?= jyr_h($pageUrl(['edit' => (int)$rule['id']])) ?>" aria-label="<?= jyr_h(jyr_t('Edit redirect %s', (string)$rule['source_path'])) ?>"><?= jyr_h(jyr_t('Edit')) ?></a></td>
+                <td class="jyr-select-cell"><label><input type="checkbox" name="selected_ids[]" value="<?= (int)$rule['id'] ?>" aria-label="<?= jyr_h(jyr_t('Select redirect')) ?>"></label></td>
+                <td class="jyr-route-cell" data-label="<?= jyr_h(jyr_t('Route')) ?>"><div class="jyr-route"><code><?= jyr_h($rule['source_path']) ?></code><span class="jyr-arrow">&rarr;</span><code><?= jyr_h($rule['target_url']) ?></code></div></td>
+                <td data-label="<?= jyr_h(jyr_t('State')) ?>"><span class="jyr-badge <?= !empty($rule['enabled']) ? 'is-on' : 'is-off' ?>"><?= jyr_h(!empty($rule['enabled']) ? jyr_t('Enabled') : jyr_t('Disabled')) ?></span></td>
+                <td data-label="<?= jyr_h(jyr_t('Hits')) ?>"><span class="jyr-cell-value"><?= number_format((int)$rule['hit_count']) ?></span></td>
+                <td data-label="<?= jyr_h(jyr_t('Last hit')) ?>"><span class="jyr-cell-value"><?= jyr_h($rule['last_hit_at'] ?: jyr_t('Never')) ?></span></td>
+                <td data-label="<?= jyr_h(jyr_t('Action')) ?>"><a href="<?= jyr_h($pageUrl(['edit' => (int)$rule['id']])) ?>" aria-label="<?= jyr_h(jyr_t('Edit redirect %s', (string)$rule['source_path'])) ?>"><?= jyr_h(jyr_t('Edit')) ?></a></td>
               </tr>
             <?php endforeach; endif; ?>
             </tbody>
@@ -200,6 +205,11 @@ $to = min($total, $page * $perPage);
       <form method="get" class="jyr-toolbar">
         <input type="hidden" name="page" value="admin/tools/redirection"><input type="hidden" name="tab" value="404s">
         <input type="search" name="q" value="<?= jyr_h($query) ?>" placeholder="<?= jyr_h(jyr_t('Search 404 paths')) ?>">
+        <select name="per_page" aria-label="<?= jyr_h(jyr_t('Items per page')) ?>">
+          <?php foreach (JYR_ADMIN_PAGE_SIZES as $size): ?>
+          <option value="<?= $size ?>" <?= $perPage === $size ? 'selected' : '' ?>><?= jyr_h(jyr_t('%d per page', $size)) ?></option>
+          <?php endforeach; ?>
+        </select>
         <button type="submit"><?= jyr_h(jyr_t('Search')) ?></button>
       </form>
       <form method="post" action="<?= jyr_h($actionUrl) ?>" onsubmit="return confirm(<?= jyr_h(json_encode(jyr_t('Clear all 404 insights?'))) ?>)">
@@ -209,13 +219,25 @@ $to = min($total, $page * $perPage);
     </div>
     <form method="post" action="<?= jyr_h($actionUrl) ?>" onsubmit="return confirm(<?= jyr_h(json_encode(jyr_t('Delete the selected 404 paths?'))) ?>)">
       <input type="hidden" name="csrf_token" value="<?= jyr_h($csrf) ?>"><input type="hidden" name="action" value="delete_logs">
-      <div class="jyr-bulk"><button type="submit"><?= jyr_h(jyr_t('Delete selected')) ?></button></div>
-      <div class="jyr-table-wrap" tabindex="0" role="region" aria-label="<?= jyr_h(jyr_t('404 Insights')) ?>"><table class="jyr-table"><thead><tr><th scope="col"><span class="sr-only"><?= jyr_h(jyr_t('Select')) ?></span></th><th scope="col"><?= jyr_h(jyr_t('Path')) ?></th><th scope="col"><?= jyr_h(jyr_t('Hits')) ?></th><th scope="col"><?= jyr_h(jyr_t('First seen')) ?></th><th scope="col"><?= jyr_h(jyr_t('Last seen')) ?></th><th scope="col"><?= jyr_h(jyr_t('Action')) ?></th></tr></thead><tbody>
-      <?php if ($logs === []): ?><tr><td colspan="6" class="jyr-empty-row"><?= jyr_h(jyr_t('No public 404 paths recorded.')) ?></td></tr>
+      <div class="jyr-bulk jyr-bulk--split">
+        <button type="submit"><?= jyr_h(jyr_t('Delete selected')) ?></button>
+        <details class="jyr-columns" data-jyr-column-controls hidden>
+          <summary><?= jyr_h(jyr_t('Columns')) ?></summary>
+          <div class="jyr-columns-menu" role="group" aria-label="<?= jyr_h(jyr_t('Show columns')) ?>">
+            <strong><?= jyr_h(jyr_t('Show columns')) ?></strong>
+            <?php foreach (['hits' => jyr_t('Hits'), 'first-seen' => jyr_t('First seen'), 'last-seen' => jyr_t('Last seen'), 'action' => jyr_t('Action')] as $column => $label): ?>
+            <label><input type="checkbox" value="<?= jyr_h($column) ?>" data-jyr-column-toggle checked><span><?= jyr_h($label) ?></span></label>
+            <?php endforeach; ?>
+            <button type="button" data-jyr-columns-reset><?= jyr_h(jyr_t('Reset columns')) ?></button>
+          </div>
+        </details>
+      </div>
+      <div class="jyr-table-wrap" tabindex="0" role="region" aria-label="<?= jyr_h(jyr_t('404 Insights')) ?>"><table class="jyr-table" data-jyr-404-table><thead><tr><th scope="col"><span class="sr-only"><?= jyr_h(jyr_t('Select')) ?></span></th><th scope="col"><?= jyr_h(jyr_t('Path')) ?></th><th scope="col" data-jyr-column="hits"><?= jyr_h(jyr_t('Hits')) ?></th><th scope="col" data-jyr-column="first-seen"><?= jyr_h(jyr_t('First seen')) ?></th><th scope="col" data-jyr-column="last-seen"><?= jyr_h(jyr_t('Last seen')) ?></th><th scope="col" data-jyr-column="action"><?= jyr_h(jyr_t('Action')) ?></th></tr></thead><tbody>
+      <?php if ($logs === []): ?><tr class="jyr-empty-table-row"><td colspan="6" class="jyr-empty-row"><?= jyr_h(jyr_t('No public 404 paths recorded.')) ?></td></tr>
       <?php else: foreach ($logs as $log): ?><tr>
-        <td><input type="checkbox" name="selected_ids[]" value="<?= (int)$log['id'] ?>" aria-label="<?= jyr_h(jyr_t('Select 404 path')) ?>"></td>
-        <td><code><?= jyr_h($log['path']) ?></code></td><td><?= number_format((int)$log['hit_count']) ?></td><td><?= jyr_h($log['first_seen_at']) ?></td><td><?= jyr_h($log['last_seen_at']) ?></td>
-        <td><a href="<?= jyr_h($baseUrl . '&source=' . rawurlencode((string)$log['path'])) ?>" aria-label="<?= jyr_h(jyr_t('Create redirect for %s', (string)$log['path'])) ?>"><?= jyr_h(jyr_t('Create redirect')) ?></a></td>
+        <td class="jyr-select-cell"><label><input type="checkbox" name="selected_ids[]" value="<?= (int)$log['id'] ?>" aria-label="<?= jyr_h(jyr_t('Select 404 path')) ?>"></label></td>
+        <td class="jyr-route-cell" data-label="<?= jyr_h(jyr_t('Path')) ?>"><div class="jyr-route"><code><?= jyr_h($log['path']) ?></code></div></td><td data-jyr-column="hits" data-label="<?= jyr_h(jyr_t('Hits')) ?>"><span class="jyr-cell-value"><?= number_format((int)$log['hit_count']) ?></span></td><td data-jyr-column="first-seen" data-label="<?= jyr_h(jyr_t('First seen')) ?>"><span class="jyr-cell-value"><?= jyr_h($log['first_seen_at']) ?></span></td><td data-jyr-column="last-seen" data-label="<?= jyr_h(jyr_t('Last seen')) ?>"><span class="jyr-cell-value"><?= jyr_h($log['last_seen_at']) ?></span></td>
+        <td data-jyr-column="action" data-label="<?= jyr_h(jyr_t('Action')) ?>"><a class="jyr-create-action" href="<?= jyr_h($baseUrl . '&source=' . rawurlencode((string)$log['path'])) ?>" aria-label="<?= jyr_h(jyr_t('Create redirect for %s', (string)$log['path'])) ?>"><span aria-hidden="true">+</span><?= jyr_h(jyr_t('Create redirect')) ?></a></td>
       </tr><?php endforeach; endif; ?>
       </tbody></table></div>
     </form>
@@ -223,9 +245,17 @@ $to = min($total, $page * $perPage);
   <?php endif; ?>
 
   <?php if ($totalPages > 1): ?><nav class="jyr-pagination" aria-label="<?= jyr_h(jyr_t('Pagination')) ?>">
-    <span><?= jyr_h(jyr_t('Showing %d-%d of %d', $from, $to, $total)) ?></span><div>
+    <span><?= jyr_h(jyr_t('Showing %d-%d of %d', $from, $to, $total)) ?></span><div class="jyr-pagination-links">
+    <?php if ($page > 1): ?>
+      <a class="jyr-page-edge" href="<?= jyr_h($pageUrl(['p' => 1, 'edit' => null])) ?>" aria-label="<?= jyr_h(jyr_t('First page')) ?>">&laquo;</a>
+      <a class="jyr-page-edge" href="<?= jyr_h($pageUrl(['p' => $page - 1, 'edit' => null])) ?>" aria-label="<?= jyr_h(jyr_t('Previous page')) ?>">&lsaquo;</a>
+    <?php endif; ?>
     <?php for ($number = max(1, $page - 2); $number <= min($totalPages, $page + 2); $number++): ?>
       <a class="<?= $number === $page ? 'is-current' : '' ?>" <?= $number === $page ? 'aria-current="page"' : '' ?> href="<?= jyr_h($pageUrl(['p' => $number, 'edit' => null])) ?>"><?= $number ?></a>
-    <?php endfor; ?></div>
+    <?php endfor; ?>
+    <?php if ($page < $totalPages): ?>
+      <a class="jyr-page-edge" href="<?= jyr_h($pageUrl(['p' => $page + 1, 'edit' => null])) ?>" aria-label="<?= jyr_h(jyr_t('Next page')) ?>">&rsaquo;</a>
+      <a class="jyr-page-edge" href="<?= jyr_h($pageUrl(['p' => $totalPages, 'edit' => null])) ?>" aria-label="<?= jyr_h(jyr_t('Last page')) ?>">&raquo;</a>
+    <?php endif; ?></div>
   </nav><?php endif; ?>
 </div>

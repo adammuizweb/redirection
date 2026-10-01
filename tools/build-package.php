@@ -33,7 +33,7 @@ register_shutdown_function(static function () use ($temporary): void {
 
 $packageFiles = [
     'CHANGELOG.md', 'LICENSE', 'README.md', 'icon.svg', 'plugin.json', 'plugin.php',
-    'admin/action.php', 'admin/index.php', 'assets/css/admin.css',
+    'admin/action.php', 'admin/index.php', 'assets/css/admin.css', 'assets/js/admin.js',
     'includes/normalize.php', 'includes/repository.php', 'includes/runtime.php', 'includes/schema.php',
     'languages/de.php', 'languages/id.php',
 ];

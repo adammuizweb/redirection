@@ -51,6 +51,8 @@ $check(isset($GLOBALS['_jyr_hooks']['router_path'])
     && ($GLOBALS['_jyr_routes'][0]['path'] ?? '') === 'jyr-redirect-dispatch'
     && ($GLOBALS['_jyr_routes'][0]['methods'] ?? []) === ['GET', 'HEAD'], 'one static GET/HEAD dispatcher route handles content overrides');
 $check(isset($GLOBALS['_jyr_hooks']['plugin_uninstall']), 'data cleanup participates in the Core uninstall contract');
+$check(jyr_admin_page_size(null) === 20 && jyr_admin_page_size('25') === 20 && jyr_admin_page_size([]) === 20, 'admin page size defaults safely');
+$check(jyr_admin_page_size('10') === 10 && jyr_admin_page_size(200) === 200, 'admin page size accepts only bounded choices');
 
 $check(jyr_normalize_source_path('/old-path') === '/old-path/', 'directory-like source receives a canonical trailing slash');
 $check(jyr_normalize_source_path('old-path') === '/old-path/', 'source accepts omitted leading and trailing slashes');

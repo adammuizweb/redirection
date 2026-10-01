@@ -11,6 +11,8 @@ Redirection is a focused Jyavani plugin for managing exact-path redirects and re
 - Request query-string preservation through Jyavani Core, with explicit consent for external forwarding.
 - Atomic hit counters and last-hit timestamps.
 - Enable, disable, delete, and reset-hit bulk actions.
+- Configurable 10, 20, 50, 100, or 200-row dashboard pagination.
+- Persistent 404 insight column visibility controls.
 - Save-time and runtime redirect-loop protection.
 - Runtime protection against protected routes created after a redirect rule.
 - Privacy-conscious 404 aggregation with a 10,000-path cap.
@@ -88,7 +90,7 @@ php tests/package_contract.php
 Build and inspect a flat candidate package:
 
 ```bash
-php tools/build-package.php /tmp/redirection-1.2.1.zip
+php tools/build-package.php /tmp/redirection-1.3.1.zip
 ```
 
 The repository is the authoritative development source. Store publisher copies and installed copies are release or runtime derivatives.

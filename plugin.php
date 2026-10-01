@@ -3,11 +3,24 @@ declare(strict_types=1);
 
 if (!defined('BACKEND_PATH')) return;
 
-const JYR_VERSION = '1.2.1';
+const JYR_VERSION = '1.3.1';
 const JYR_SCHEMA_VERSION = '1';
 const JYR_RULES_TABLE = 'jyr_redirects';
 const JYR_LOGS_TABLE = 'jyr_404_paths';
 const JYR_MAX_404_PATHS = 10000;
+const JYR_ADMIN_PAGE_SIZES = [10, 20, 50, 100, 200];
+
+function jyr_admin_page_size(mixed $value): int
+{
+    if (is_int($value)) {
+        $size = $value;
+    } elseif (is_string($value) && preg_match('/\A\d+\z/D', $value) === 1) {
+        $size = (int)$value;
+    } else {
+        return 20;
+    }
+    return in_array($size, JYR_ADMIN_PAGE_SIZES, true) ? $size : 20;
+}
 
 function jyr_t(string $source, mixed ...$args): string
 {
@@ -54,6 +67,7 @@ function jyr_admin_assets(): void
     $page = trim((string)($_GET['page'] ?? ''), '/');
     if ($page !== 'admin/tools/redirection') return;
     echo '<link rel="stylesheet" href="/static/plugins/redirection/admin.css?v=' . rawurlencode(JYR_VERSION) . '">';
+    echo '<script defer src="/static/plugins/redirection/admin.js?v=' . rawurlencode(JYR_VERSION) . '"></script>';
 }
 
 function jyr_uninstall(string $name): void
