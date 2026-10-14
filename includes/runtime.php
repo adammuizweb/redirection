@@ -53,7 +53,7 @@ function jyr_content_override_path(string $path): string
     if ($source === null) return $path;
     $locale = (string)($GLOBALS['ct_request_locale'] ?? '');
     $conflict = jyr_source_conflict($pdo, $source, $locale);
-    if (!jyr_content_route_can_be_overridden($conflict) || jyr_plugin_route_conflict($source) !== null) return $path;
+    if (!jyr_source_can_be_overridden($source, $conflict) || jyr_plugin_route_conflict($source) !== null) return $path;
     $rule = jyr_find_active_rule($pdo, $source);
     if (!$rule || jyr_validate_redirect_target($pdo, $source, $rule) === '') return $path;
 
@@ -61,9 +61,44 @@ function jyr_content_override_path(string $path): string
     return 'jyr-redirect-dispatch';
 }
 
+function jyr_register_legacy_date_routes(PDO $pdo): void
+{
+    if (!function_exists('register_frontend_route')) return;
+    try {
+        $limit = JYR_MAX_PRE_CORE_ROUTES + 1;
+        $stmt = $pdo->query(
+            "SELECT source_path FROM `" . JYR_RULES_TABLE . "`
+             WHERE enabled = 1 AND source_path LIKE '/____/__/%.html'
+             ORDER BY id LIMIT " . $limit
+        );
+        $registered = 0;
+        foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) ?: [] as $source) {
+            $source = (string)$source;
+            if (!jyr_legacy_date_file_source($source)) continue;
+            if ($registered >= JYR_MAX_PRE_CORE_ROUTES) {
+                error_log('[redirection] legacy date-file route limit reached.');
+                break;
+            }
+            if (register_frontend_route(trim($source, '/'), 'jyr_content_override_dispatch', [
+                'match' => 'exact',
+                'methods' => ['GET', 'HEAD'],
+                'phase' => 'pre_core',
+            ])) {
+                $registered++;
+            }
+        }
+    } catch (Throwable $e) {
+        error_log('[redirection] legacy route registration error: ' . $e->getMessage());
+    }
+}
+
 function jyr_content_override_dispatch(PDO $pdo): void
 {
     $source = (string)($GLOBALS['jyr_content_override_source'] ?? '');
+    if ($source === '') {
+        $requestSource = jyr_request_source_path();
+        if (is_string($requestSource) && jyr_legacy_date_file_source($requestSource)) $source = $requestSource;
+    }
     $target = $source !== '' ? jyr_resolve_redirect_target($pdo, $source) : '';
     if ($target === '' || !function_exists('url_append_query_string')) {
         http_response_code(404);

@@ -27,8 +27,15 @@ $check(str_contains($runtime, "['GET', 'HEAD']"), 'runtime redirects only GET an
 $check(str_contains($runtime, 'jyr_source_conflict'), 'unresolved runtime yields to routes created after a rule');
 $check(str_contains((string)file_get_contents($root . '/plugin.php'), "'methods' => ['GET', 'HEAD']")
     && str_contains($runtime, "return 'jyr-redirect-dispatch'"), 'content overrides use one static exact dispatcher route');
+$check(str_contains($runtime, "'phase' => 'pre_core'")
+    && str_contains($runtime, 'JYR_MAX_PRE_CORE_ROUTES')
+    && str_contains($runtime, 'jyr_legacy_date_file_source'),
+    'legacy date-file redirects use bounded exact pre-Core routes rather than wildcard matching');
 $check(str_contains($normalize, "['content_route', 'post_slug', 'post_permalink']")
-    && str_contains($normalize, 'jyr_plugin_route_conflict'), 'only content ownership is overridable while plugin routes remain protected');
+    && str_contains($normalize, 'jyr_legacy_date_file_source')
+    && str_contains($normalize, "['core_prefix', 'core_route']")
+    && str_contains($normalize, 'jyr_plugin_route_conflict'),
+    'only content ownership and bounded legacy date-file paths are overridable while plugin routes remain protected');
 $check(str_contains($runtime, 'jyr_normalize_target_url((string)$rule[\'target_url\'], true)'), 'runtime revalidates stored internal and external targets');
 $check(str_contains($action, 'jyr_external_target_policy_error') && str_contains($action, "allow_external") && str_contains($action, "confirm_external_query"), 'external redirects enforce destination and query-forwarding consent');
 $check(!str_contains($index, '$editTargetIsExternal') && str_contains($index, 'name="allow_external" value="1" autocomplete="off"'), 'external consent is not preselected while editing');

@@ -153,7 +153,21 @@ if (in_array('sqlite', PDO::getAvailableDrivers(), true)) {
     $check(jyr_rules_have_loop($pdo), 'chain bounds do not depend on database row order');
     $check(jyr_source_conflict($pdo, '/posts/feed.xml') !== null, 'legacy posts collection remains reserved for generic source paths');
     $check(jyr_source_conflict($pdo, '/2026/report.pdf') !== null, 'year archive prefixes remain reserved for generic source paths');
+    $check(jyr_legacy_date_file_source('/2026/10/legacy-post.html')
+        && !jyr_legacy_date_file_source('/2026/10/')
+        && !jyr_legacy_date_file_source('/2026/13/legacy-post.html')
+        && !jyr_legacy_date_file_source('/2026/10/nested/legacy-post.html'),
+        'only bounded exact legacy date-file sources qualify for archive-prefix overrides');
     $check(jyr_redirect_source_blocker($pdo, '/robots.txt') !== null, 'crawler policy remains a protected Core route');
+    $insertRule('/2026/10/legacy-post.html', '/legacy-post/');
+    jyr_register_legacy_date_routes($pdo);
+    $legacyRoute = array_values(array_filter($GLOBALS['_jyr_routes'], static fn(array $route): bool => ($route['path'] ?? '') === '2026/10/legacy-post.html'))[0] ?? [];
+    $check(($legacyRoute['match'] ?? '') === 'exact' && ($legacyRoute['phase'] ?? '') === 'pre_core'
+        && ($legacyRoute['methods'] ?? []) === ['GET', 'HEAD']
+        && ($legacyRoute['handler'] ?? null) === 'jyr_content_override_dispatch',
+        'active legacy date-file rules register as exact bounded pre-Core routes');
+    $check(jyr_redirect_source_blocker($pdo, '/2026/10/legacy-post.html') === null,
+        'a plugin-owned exact legacy route does not block its redirect rule');
     $pdo->exec("INSERT INTO posts (slug,type,is_deleted) VALUES ('faq','page',0)");
     $insertRule('/faq/', 'https://example.test/faq');
     $check(jyr_content_route_can_be_overridden(jyr_source_conflict($pdo, '/faq/')), 'an exact content path is an allowed redirect override');
@@ -161,6 +175,8 @@ if (in_array('sqlite', PDO::getAvailableDrivers(), true)) {
     $GLOBALS['pdo'] = $pdo;
     $_SERVER['REQUEST_METHOD'] = 'GET';
     $check(jyr_content_override_path('faq') === 'jyr-redirect-dispatch', 'an exact content rule is routed through the static redirect dispatcher');
+    $check(jyr_content_override_path('2026/10/legacy-post.html') === 'jyr-redirect-dispatch',
+        'an exact legacy date-file rule is routed before the archive fallback');
     $GLOBALS['_jyr_routes'][] = ['path' => 'account', 'handler' => 'other_plugin', 'match' => 'prefix', 'methods' => ['GET']];
     $check(jyr_redirect_source_blocker($pdo, '/account/profile/') !== null, 'another plugin frontend route remains protected');
     $GLOBALS['_jyr_routes'][] = ['path' => 'mutations', 'handler' => 'other_plugin_post', 'match' => 'prefix', 'methods' => ['POST']];

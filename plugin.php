@@ -3,11 +3,12 @@ declare(strict_types=1);
 
 if (!defined('BACKEND_PATH')) return;
 
-const JYR_VERSION = '1.3.1';
+const JYR_VERSION = '1.3.2';
 const JYR_SCHEMA_VERSION = '1';
 const JYR_RULES_TABLE = 'jyr_redirects';
 const JYR_LOGS_TABLE = 'jyr_404_paths';
 const JYR_MAX_404_PATHS = 10000;
+const JYR_MAX_PRE_CORE_ROUTES = 2000;
 const JYR_ADMIN_PAGE_SIZES = [10, 20, 50, 100, 200];
 
 function jyr_admin_page_size(mixed $value): int
@@ -59,7 +60,7 @@ function jyr_bootstrap(): void
 {
     $pdo = $GLOBALS['pdo'] ?? null;
     if (!$pdo instanceof PDO) return;
-    jyr_ensure_schema($pdo);
+    if (jyr_ensure_schema($pdo)) jyr_register_legacy_date_routes($pdo);
 }
 
 function jyr_admin_assets(): void

@@ -16,7 +16,7 @@ exec($command . ' 2>&1', $lines, $status);
 $check($status === 0 && is_file($output), 'package builder creates a candidate outside the repository');
 
 $payload = $status === 0 ? json_decode(implode("\n", $lines), true) : null;
-$check(is_array($payload) && ($payload['version'] ?? '') === '1.3.1' && ($payload['entries'] ?? 0) === 16, 'builder reports the expected version and entry count');
+$check(is_array($payload) && ($payload['version'] ?? '') === '1.3.2' && ($payload['entries'] ?? 0) === 16, 'builder reports the expected version and entry count');
 $check(is_array($payload) && hash_equals((string)($payload['sha256'] ?? ''), (string)hash_file('sha256', $output)), 'reported package checksum matches the final bytes');
 
 $zip = new ZipArchive();
@@ -28,7 +28,7 @@ if ($opened) {
     $check(in_array('plugin.json', $entries, true) && in_array('plugin.php', $entries, true), 'manifest and entrypoint are at the ZIP root');
     $check(!in_array('AGENTS.md', $entries, true) && !in_array('tests/contract.php', $entries, true), 'development-only files are excluded');
     $embedded = json_decode((string)$zip->getFromName('plugin.json'), true, 512, JSON_THROW_ON_ERROR);
-    $check(($embedded['name'] ?? '') === 'redirection' && ($embedded['version'] ?? '') === '1.3.1', 'embedded manifest identity is correct');
+    $check(($embedded['name'] ?? '') === 'redirection' && ($embedded['version'] ?? '') === '1.3.2', 'embedded manifest identity is correct');
     $zip->close();
 }
 if (is_file($output)) unlink($output);

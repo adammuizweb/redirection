@@ -201,6 +201,18 @@ function jyr_content_route_can_be_overridden(?array $conflict): bool
     return in_array((string)($conflict['type'] ?? ''), ['content_route', 'post_slug', 'post_permalink'], true);
 }
 
+function jyr_legacy_date_file_source(string $source): bool
+{
+    return preg_match('#\A/\d{4}/(?:0[1-9]|1[0-2])/[A-Za-z0-9][A-Za-z0-9._~-]*\.html\z#D', $source) === 1;
+}
+
+function jyr_source_can_be_overridden(string $source, ?array $conflict): bool
+{
+    if (jyr_content_route_can_be_overridden($conflict)) return true;
+    return jyr_legacy_date_file_source($source)
+        && in_array((string)($conflict['type'] ?? ''), ['core_prefix', 'core_route'], true);
+}
+
 function jyr_plugin_route_conflict(string $source): ?array
 {
     $path = trim($source, '/');
@@ -210,6 +222,12 @@ function jyr_plugin_route_conflict(string $source): ?array
         foreach ((array)get_frontend_route_definitions() as $route) {
             if (!is_array($route)) continue;
             $routePath = trim((string)($route['path'] ?? ''), '/');
+            if (($route['phase'] ?? 'normal') === 'pre_core'
+                && ($route['match'] ?? 'prefix') === 'exact'
+                && ($route['handler'] ?? null) === 'jyr_content_override_dispatch'
+                && $routePath === $path) {
+                continue;
+            }
             $matches = ($route['match'] ?? 'prefix') === 'exact'
                 ? $path === $routePath
                 : ($routePath !== '' && ($path === $routePath || str_starts_with($path, $routePath . '/')));
@@ -232,7 +250,7 @@ function jyr_plugin_route_conflict(string $source): ?array
 function jyr_redirect_source_blocker(PDO $pdo, string $source): ?array
 {
     $conflict = jyr_source_conflict($pdo, $source);
-    if ($conflict !== null && !jyr_content_route_can_be_overridden($conflict)) return $conflict;
+    if ($conflict !== null && !jyr_source_can_be_overridden($source, $conflict)) return $conflict;
     return jyr_plugin_route_conflict($source);
 }
 

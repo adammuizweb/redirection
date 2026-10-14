@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.2 - 2026-10-14
+
+- Allow exact legacy date-file redirects such as `/2026/10/example.html` without exposing archive, Core, authentication, static, or plugin route prefixes.
+
 ## 1.3.1 - 2026-10-01
 
 - Improve the 404 insight create-redirect action styling.

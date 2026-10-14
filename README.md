@@ -5,6 +5,7 @@ Redirection is a focused Jyavani plugin for managing exact-path redirects and re
 ## Features
 
 - Exact, case-sensitive source path matching.
+- Exact legacy date-file redirects such as `/2026/10/old-post.html` for migrations from date-based publishing platforms, registered as bounded pre-Core routes rather than wildcard matches.
 - Intentional overrides for exact article, page, and Theme Template paths.
 - Safe internal root-relative targets and explicitly approved HTTPS external destinations.
 - Permanent `301` redirects through the native Jyavani redirect hook.
@@ -46,6 +47,7 @@ Source paths:
 - Match exact paths only and preserve letter case.
 - Cannot include query strings or fragments.
 - May shadow an exact article, page, or Theme Template path by creating and enabling the rule.
+- May shadow an exact `/YYYY/MM/name.html` path while year and month archive landing pages remain protected.
 - Cannot shadow Core, authentication, static, collection, root-category, or other plugin routes.
 
 Target URLs:
