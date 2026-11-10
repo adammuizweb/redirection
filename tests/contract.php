@@ -70,6 +70,7 @@ $check(jyr_normalize_source_path("/bad\r\npath/") === null, 'header control byte
 $check(jyr_normalize_source_path('/old/?key=value') === null, 'query strings cannot participate in source matching');
 
 $check(jyr_normalize_target_url('/new-path/') === '/new-path/', 'internal target is accepted');
+$check(jyr_normalize_target_url('/') === '/', 'homepage is accepted as an internal target');
 $check(jyr_normalize_target_url('new-path') === '/new-path/', 'internal target accepts omitted leading and trailing slashes');
 $check(jyr_normalize_target_url('new-path/') === '/new-path/', 'internal target accepts an omitted leading slash');
 $check(jyr_normalize_target_url('folder/video.mp4') === '/folder/video.mp4', 'nested internal file target remains slashless');
@@ -177,6 +178,16 @@ if (in_array('sqlite', PDO::getAvailableDrivers(), true)) {
     $check(jyr_content_override_path('faq') === 'jyr-redirect-dispatch', 'an exact content rule is routed through the static redirect dispatcher');
     $check(jyr_content_override_path('2026/10/legacy-post.html') === 'jyr-redirect-dispatch',
         'an exact legacy date-file rule is routed before the archive fallback');
+    $insertRule('/id/', '/');
+    $GLOBALS['ct_request_locale'] = 'id';
+    $_SERVER['REQUEST_URI'] = '/id/?campaign=test';
+    $check(jyr_content_override_path('') === 'jyr-redirect-dispatch'
+        && ($GLOBALS['jyr_content_override_source'] ?? '') === '/id/',
+        'a translated homepage locale root can be redirected to the default homepage');
+    unset($GLOBALS['jyr_content_override_source']);
+    $_SERVER['REQUEST_URI'] = '/de/';
+    $check(jyr_content_override_path('') === '', 'a locale-root override requires the raw request locale to match');
+    unset($GLOBALS['ct_request_locale']);
     $GLOBALS['_jyr_routes'][] = ['path' => 'account', 'handler' => 'other_plugin', 'match' => 'prefix', 'methods' => ['GET']];
     $check(jyr_redirect_source_blocker($pdo, '/account/profile/') !== null, 'another plugin frontend route remains protected');
     $GLOBALS['_jyr_routes'][] = ['path' => 'mutations', 'handler' => 'other_plugin_post', 'match' => 'prefix', 'methods' => ['POST']];

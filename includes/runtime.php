@@ -49,11 +49,21 @@ function jyr_content_override_path(string $path): string
     $pdo = $GLOBALS['pdo'] ?? null;
     if (!$pdo instanceof PDO) return $path;
 
-    $source = jyr_normalize_source_path('/' . trim($path, '/'));
-    if ($source === null) return $path;
     $locale = (string)($GLOBALS['ct_request_locale'] ?? '');
+    $source = jyr_normalize_source_path('/' . trim($path, '/'));
+    $localizedRoot = false;
+    if ($source === null && $path === '' && $locale !== '') {
+        $requestSource = jyr_request_source_path();
+        $localeSource = jyr_normalize_source_path('/' . $locale);
+        if ($requestSource !== null && $requestSource === $localeSource) {
+            $source = $requestSource;
+            $localizedRoot = true;
+        }
+    }
+    if ($source === null) return $path;
     $conflict = jyr_source_conflict($pdo, $source, $locale);
-    if (!jyr_source_can_be_overridden($source, $conflict) || jyr_plugin_route_conflict($source) !== null) return $path;
+    $canOverride = $localizedRoot ? $conflict === null : jyr_source_can_be_overridden($source, $conflict);
+    if (!$canOverride || jyr_plugin_route_conflict($source) !== null) return $path;
     $rule = jyr_find_active_rule($pdo, $source);
     if (!$rule || jyr_validate_redirect_target($pdo, $source, $rule) === '') return $path;
 

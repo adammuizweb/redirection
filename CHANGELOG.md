@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.3 - 2026-11-10
+
+- Allow an exact Content Translation locale-root rule such as `/id/` to redirect to the default homepage.
+
 ## 1.3.2 - 2026-10-14
 
 - Allow exact legacy date-file redirects such as `/2026/10/example.html` without exposing archive, Core, authentication, static, or plugin route prefixes.
