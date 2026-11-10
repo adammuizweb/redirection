@@ -92,7 +92,7 @@ php tests/package_contract.php
 Build and inspect a flat candidate package:
 
 ```bash
-php tools/build-package.php /tmp/redirection-1.3.1.zip
+php tools/build-package.php /tmp/redirection-1.3.4.zip
 ```
 
 The repository is the authoritative development source. Store publisher copies and installed copies are release or runtime derivatives.

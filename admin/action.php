@@ -20,6 +20,30 @@ $redirect = static function (string $type, string $message, string $suffix = '')
     header('Location: ' . $location, true, 303);
     exit;
 };
+$returnSuffix = static function (int $ruleId, bool $saved): string {
+    $queryValue = $_POST['return_q'] ?? '';
+    $statusValue = $_POST['return_status'] ?? 'all';
+    $pageValue = $_POST['return_page'] ?? 1;
+    $query = is_string($queryValue) ? mb_substr(trim($queryValue), 0, 160) : '';
+    $status = is_string($statusValue) ? $statusValue : 'all';
+    if (!in_array($status, ['all', 'enabled', 'disabled'], true)) $status = 'all';
+    $page = is_int($pageValue) || (is_string($pageValue) && preg_match('/\A\d+\z/D', $pageValue) === 1)
+        ? min(100000, max(1, (int)$pageValue))
+        : 1;
+    $perPage = jyr_admin_page_size($_POST['return_per_page'] ?? null);
+    $params = [];
+    if ($query !== '') $params['q'] = $query;
+    if ($status !== 'all') $params['status'] = $status;
+    if ($perPage !== 20) $params['per_page'] = $perPage;
+    if ($saved && $ruleId > 0) {
+        $params['saved'] = $ruleId;
+    } else {
+        if ($page > 1) $params['p'] = $page;
+        if ($ruleId > 0) $params['edit'] = $ruleId;
+    }
+    $suffix = $params === [] ? '' : '&' . http_build_query($params, '', '&', PHP_QUERY_RFC3986);
+    return $suffix . ($saved && $ruleId > 0 ? '#jyr-rule-' . $ruleId : '#jyr-editor');
+};
 $audit = static function (string $event, ?string $resourceId, array $metadata = []) use ($pdo, $uid): void {
     if (!function_exists('authorization_audit')
         || !authorization_audit($pdo, $event, $uid, null, 'redirection', $resourceId, $metadata)) {
@@ -106,7 +130,7 @@ try {
             'after' => ['source_path' => $source, 'target_url' => $target, 'enabled' => $enabled],
         ]);
         $pdo->commit();
-        $redirect('success', jyr_t('Redirect rule saved.'));
+        $redirect('success', jyr_t('Redirect rule saved.'), $returnSuffix($id, true));
     }
 
     if (in_array($action, ['enable', 'disable', 'delete', 'reset_hits'], true)) {
@@ -186,5 +210,12 @@ try {
     if ($pdo->inTransaction()) $pdo->rollBack();
     $message = $e instanceof DomainException ? $e->getMessage() : jyr_t('The operation could not be completed.');
     if (!$e instanceof DomainException) error_log('[redirection] admin action error: ' . $e->getMessage());
-    $redirect('error', $message, $action === 'delete_logs' || $action === 'clear_logs' ? '&tab=404s' : '');
+    $errorIdValue = $_POST['id'] ?? 0;
+    $errorId = is_int($errorIdValue) || (is_string($errorIdValue) && preg_match('/\A\d+\z/D', $errorIdValue) === 1)
+        ? max(0, (int)$errorIdValue)
+        : 0;
+    $suffix = $action === 'delete_logs' || $action === 'clear_logs'
+        ? '&tab=404s'
+        : ($action === 'save' ? $returnSuffix($errorId, false) : '');
+    $redirect('error', $message, $suffix);
 }

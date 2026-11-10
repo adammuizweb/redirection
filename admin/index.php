@@ -38,6 +38,11 @@ $logs = [];
 $total = 0;
 $totalPages = 1;
 $editRule = null;
+$status = 'all';
+$savedValue = $_GET['saved'] ?? 0;
+$savedId = is_int($savedValue) || (is_string($savedValue) && preg_match('/\A\d+\z/D', $savedValue) === 1)
+    ? max(0, (int)$savedValue)
+    : 0;
 
 if ($tab === 'rules') {
     $status = (string)($_GET['status'] ?? 'all');
@@ -105,21 +110,32 @@ $to = min($total, $page * $perPage);
   </header>
 
   <nav class="jyr-tabs" aria-label="<?= jyr_h(jyr_t('Redirection sections')) ?>">
-    <a class="<?= $tab === 'rules' ? 'is-active' : '' ?>" <?= $tab === 'rules' ? 'aria-current="page"' : '' ?> href="<?= jyr_h($pageUrl(['tab' => null, 'q' => null, 'status' => null, 'p' => null, 'edit' => null])) ?>"><?= jyr_h(jyr_t('Redirects')) ?></a>
-    <a class="<?= $tab === '404s' ? 'is-active' : '' ?>" <?= $tab === '404s' ? 'aria-current="page"' : '' ?> href="<?= jyr_h($pageUrl(['tab' => '404s', 'q' => null, 'status' => null, 'p' => null, 'edit' => null])) ?>"><?= jyr_h(jyr_t('404 Insights')) ?></a>
+    <a class="<?= $tab === 'rules' ? 'is-active' : '' ?>" <?= $tab === 'rules' ? 'aria-current="page"' : '' ?> href="<?= jyr_h($pageUrl(['tab' => null, 'q' => null, 'status' => null, 'p' => null, 'edit' => null, 'saved' => null])) ?>"><?= jyr_h(jyr_t('Redirects')) ?></a>
+    <a class="<?= $tab === '404s' ? 'is-active' : '' ?>" <?= $tab === '404s' ? 'aria-current="page"' : '' ?> href="<?= jyr_h($pageUrl(['tab' => '404s', 'q' => null, 'status' => null, 'p' => null, 'edit' => null, 'saved' => null])) ?>"><?= jyr_h(jyr_t('404 Insights')) ?></a>
   </nav>
 
   <?php if ($tab === 'rules'): ?>
   <section class="jyr-grid">
-    <article class="jyr-panel jyr-form-panel">
+    <article id="jyr-editor" class="jyr-panel jyr-form-panel<?= $editRule ? ' is-editing' : '' ?>" data-jyr-editor data-jyr-editing="<?= $editRule ? 'true' : 'false' ?>" aria-labelledby="jyr-editor-title">
       <div class="jyr-panel-head">
-        <div><span>01</span><h2><?= jyr_h($editRule ? jyr_t('Edit redirect') : jyr_t('Add redirect')) ?></h2></div>
-        <?php if ($editRule): ?><a href="<?= jyr_h($baseUrl) ?>"><?= jyr_h(jyr_t('Cancel edit')) ?></a><?php endif; ?>
+        <div><span>01</span><h2 id="jyr-editor-title" data-jyr-editor-heading tabindex="-1"><?= jyr_h($editRule ? jyr_t('Edit redirect') : jyr_t('Add redirect')) ?></h2></div>
+        <?php if ($editRule): ?><a class="jyr-action-button jyr-action-button--secondary" href="<?= jyr_h($pageUrl(['edit' => null, 'source' => null, 'saved' => null]) . '#jyr-rule-' . (int)$editRule['id']) ?>"><?= jyr_h(jyr_t('Cancel edit')) ?></a><?php endif; ?>
       </div>
+      <?php if ($editRule): ?>
+      <div class="jyr-edit-context" role="status">
+        <span><?= jyr_h(jyr_t('Editing rule')) ?></span>
+        <div><code><?= jyr_h($editRule['source_path']) ?></code><span aria-hidden="true">&rarr;</span><code><?= jyr_h($editRule['target_url']) ?></code></div>
+        <p><?= jyr_h(jyr_t('Changes will update the selected redirect rule.')) ?></p>
+      </div>
+      <?php endif; ?>
       <form method="post" action="<?= jyr_h($actionUrl) ?>" class="jyr-form">
         <input type="hidden" name="csrf_token" value="<?= jyr_h($csrf) ?>">
         <input type="hidden" name="action" value="save">
         <input type="hidden" name="id" value="<?= (int)($editRule['id'] ?? 0) ?>">
+        <input type="hidden" name="return_q" value="<?= jyr_h($query) ?>">
+        <input type="hidden" name="return_status" value="<?= jyr_h($status) ?>">
+        <input type="hidden" name="return_page" value="<?= $page ?>">
+        <input type="hidden" name="return_per_page" value="<?= $perPage ?>">
         <label>
           <span><?= jyr_h(jyr_t('Source path')) ?></span>
           <input type="text" name="source_path" maxlength="512" required placeholder="old-path" value="<?= jyr_h($editRule['source_path'] ?? ($_GET['source'] ?? '')) ?>">
@@ -173,14 +189,18 @@ $to = min($total, $page * $perPage);
             <tbody>
             <?php if ($rules === []): ?>
               <tr class="jyr-empty-table-row"><td colspan="6" class="jyr-empty-row"><?= jyr_h(jyr_t('No redirect rules found.')) ?></td></tr>
-            <?php else: foreach ($rules as $rule): ?>
-              <tr>
+            <?php else: foreach ($rules as $rule):
+              $ruleId = (int)$rule['id'];
+              $isEditing = $editRule !== null && (int)$editRule['id'] === $ruleId;
+              $isSaved = $savedId === $ruleId;
+            ?>
+              <tr id="jyr-rule-<?= $ruleId ?>" class="<?= $isEditing ? 'is-editing' : ($isSaved ? 'is-saved' : '') ?>" <?= $isEditing ? 'aria-current="true"' : '' ?>>
                 <td class="jyr-select-cell"><label><input type="checkbox" name="selected_ids[]" value="<?= (int)$rule['id'] ?>" aria-label="<?= jyr_h(jyr_t('Select redirect')) ?>"></label></td>
                 <td class="jyr-route-cell" data-label="<?= jyr_h(jyr_t('Route')) ?>"><div class="jyr-route"><code><?= jyr_h($rule['source_path']) ?></code><span class="jyr-arrow">&rarr;</span><code><?= jyr_h($rule['target_url']) ?></code></div></td>
                 <td data-label="<?= jyr_h(jyr_t('State')) ?>"><span class="jyr-badge <?= !empty($rule['enabled']) ? 'is-on' : 'is-off' ?>"><?= jyr_h(!empty($rule['enabled']) ? jyr_t('Enabled') : jyr_t('Disabled')) ?></span></td>
                 <td data-label="<?= jyr_h(jyr_t('Hits')) ?>"><span class="jyr-cell-value"><?= number_format((int)$rule['hit_count']) ?></span></td>
                 <td data-label="<?= jyr_h(jyr_t('Last hit')) ?>"><span class="jyr-cell-value"><?= jyr_h($rule['last_hit_at'] ?: jyr_t('Never')) ?></span></td>
-                <td data-label="<?= jyr_h(jyr_t('Action')) ?>"><a href="<?= jyr_h($pageUrl(['edit' => (int)$rule['id']])) ?>" aria-label="<?= jyr_h(jyr_t('Edit redirect %s', (string)$rule['source_path'])) ?>"><?= jyr_h(jyr_t('Edit')) ?></a></td>
+                <td data-label="<?= jyr_h(jyr_t('Action')) ?>"><?php if ($isEditing): ?><span class="jyr-action-button jyr-action-button--current" aria-current="true"><?= jyr_h(jyr_t('Editing')) ?></span><?php else: ?><a class="jyr-action-button jyr-action-button--edit" href="<?= jyr_h($pageUrl(['edit' => $ruleId, 'saved' => null]) . '#jyr-editor') ?>" aria-label="<?= jyr_h(jyr_t('Edit redirect %s', (string)$rule['source_path'])) ?>"><?= jyr_h(jyr_t('Edit')) ?></a><?php endif; ?></td>
               </tr>
             <?php endforeach; endif; ?>
             </tbody>
@@ -247,15 +267,15 @@ $to = min($total, $page * $perPage);
   <?php if ($totalPages > 1): ?><nav class="jyr-pagination" aria-label="<?= jyr_h(jyr_t('Pagination')) ?>">
     <span><?= jyr_h(jyr_t('Showing %d-%d of %d', $from, $to, $total)) ?></span><div class="jyr-pagination-links">
     <?php if ($page > 1): ?>
-      <a class="jyr-page-edge" href="<?= jyr_h($pageUrl(['p' => 1, 'edit' => null])) ?>" aria-label="<?= jyr_h(jyr_t('First page')) ?>">&laquo;</a>
-      <a class="jyr-page-edge" href="<?= jyr_h($pageUrl(['p' => $page - 1, 'edit' => null])) ?>" aria-label="<?= jyr_h(jyr_t('Previous page')) ?>">&lsaquo;</a>
+      <a class="jyr-page-edge" href="<?= jyr_h($pageUrl(['p' => 1, 'edit' => null, 'saved' => null])) ?>" aria-label="<?= jyr_h(jyr_t('First page')) ?>">&laquo;</a>
+      <a class="jyr-page-edge" href="<?= jyr_h($pageUrl(['p' => $page - 1, 'edit' => null, 'saved' => null])) ?>" aria-label="<?= jyr_h(jyr_t('Previous page')) ?>">&lsaquo;</a>
     <?php endif; ?>
     <?php for ($number = max(1, $page - 2); $number <= min($totalPages, $page + 2); $number++): ?>
-      <a class="<?= $number === $page ? 'is-current' : '' ?>" <?= $number === $page ? 'aria-current="page"' : '' ?> href="<?= jyr_h($pageUrl(['p' => $number, 'edit' => null])) ?>"><?= $number ?></a>
+      <a class="<?= $number === $page ? 'is-current' : '' ?>" <?= $number === $page ? 'aria-current="page"' : '' ?> href="<?= jyr_h($pageUrl(['p' => $number, 'edit' => null, 'saved' => null])) ?>"><?= $number ?></a>
     <?php endfor; ?>
     <?php if ($page < $totalPages): ?>
-      <a class="jyr-page-edge" href="<?= jyr_h($pageUrl(['p' => $page + 1, 'edit' => null])) ?>" aria-label="<?= jyr_h(jyr_t('Next page')) ?>">&rsaquo;</a>
-      <a class="jyr-page-edge" href="<?= jyr_h($pageUrl(['p' => $totalPages, 'edit' => null])) ?>" aria-label="<?= jyr_h(jyr_t('Last page')) ?>">&raquo;</a>
+      <a class="jyr-page-edge" href="<?= jyr_h($pageUrl(['p' => $page + 1, 'edit' => null, 'saved' => null])) ?>" aria-label="<?= jyr_h(jyr_t('Next page')) ?>">&rsaquo;</a>
+      <a class="jyr-page-edge" href="<?= jyr_h($pageUrl(['p' => $totalPages, 'edit' => null, 'saved' => null])) ?>" aria-label="<?= jyr_h(jyr_t('Last page')) ?>">&raquo;</a>
     <?php endif; ?></div>
   </nav><?php endif; ?>
 </div>

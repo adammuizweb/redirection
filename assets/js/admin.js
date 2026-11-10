@@ -1,6 +1,16 @@
 (() => {
   'use strict';
 
+  const editor = document.querySelector('[data-jyr-editor][data-jyr-editing="true"]');
+  if (editor instanceof HTMLElement && window.location.hash === '#jyr-editor') {
+    const heading = editor.querySelector('[data-jyr-editor-heading]');
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.requestAnimationFrame(() => {
+      editor.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' });
+      if (heading instanceof HTMLElement) heading.focus({ preventScroll: true });
+    });
+  }
+
   const controls = document.querySelector('[data-jyr-column-controls]');
   const table = document.querySelector('[data-jyr-404-table]');
   if (!(controls instanceof HTMLDetailsElement) || !(table instanceof HTMLTableElement)) return;

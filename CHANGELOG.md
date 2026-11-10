@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.4 - 2026-11-10
+
+- Make redirect editing easier to follow with a contextual editor, active-row state, and accessible focus behavior.
+- Preserve search, status, page, and page-size context after editing, then highlight the saved rule.
+
 ## 1.3.3 - 2026-11-10
 
 - Allow an exact Content Translation locale-root rule such as `/id/` to redirect to the default homepage.

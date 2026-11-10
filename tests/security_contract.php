@@ -18,6 +18,10 @@ $check(str_contains($action, "defined('DASHBOARD_CONTEXT')"), 'mutation endpoint
 $check(str_contains($action, "adiwira_require_permission(\$pdo, 'plugin.redirection.rules.manage', false)"), 'mutation endpoint repeats the permission guard');
 $check(str_contains($action, "REQUEST_METHOD") && str_contains($action, "!== 'POST'"), 'mutation endpoint rejects non-POST requests');
 $check(str_contains($action, 'csrf_check'), 'mutation endpoint validates CSRF');
+$check(str_contains($action, "is_string(\$queryValue)")
+    && str_contains($action, "is_string(\$statusValue)")
+    && str_contains($action, "preg_match('/\\A\\d+\\z/D', \$pageValue)"),
+    'return context accepts only bounded scalar values');
 $check(str_contains($action, 'beginTransaction') && str_contains($action, 'rollBack'), 'rule mutations use transactional rollback');
 $check(str_contains($action, 'jyr_rules_have_loop'), 'save and enable operations validate redirect loops');
 $check(str_contains($action, 'jyr_redirect_source_blocker'), 'new sources cannot shadow protected site routes');

@@ -212,6 +212,39 @@ foreach (['id', 'de'] as $locale) {
     $check($missing === [], $locale . ' catalog covers every plugin dashboard string');
 }
 
+$adminSource = (string)file_get_contents($root . '/admin/index.php');
+$actionSource = (string)file_get_contents($root . '/admin/action.php');
+$adminScript = (string)file_get_contents($root . '/assets/js/admin.js');
+$adminStyles = (string)file_get_contents($root . '/assets/css/admin.css');
+$check(str_contains($adminSource, 'id="jyr-editor"')
+    && str_contains($adminSource, "'#jyr-editor'")
+    && str_contains($adminSource, 'data-jyr-editing=')
+    && str_contains($adminSource, 'jyr-edit-context'),
+    'Edit links target a clearly identified contextual editor state');
+$check(str_contains($adminSource, "['edit' => null, 'source' => null, 'saved' => null]")
+    && str_contains($adminSource, 'name="return_q"')
+    && str_contains($adminSource, 'name="return_status"')
+    && str_contains($actionSource, '$returnSuffix')
+    && str_contains($actionSource, "'#jyr-rule-'"),
+    'Edit cancellation and save results retain bounded list context');
+$check(str_contains($adminSource, 'jyr-action-button--secondary')
+    && str_contains($adminSource, 'jyr-action-button--edit')
+    && str_contains($adminSource, 'jyr-action-button--current')
+    && str_contains($adminSource, 'aria-current="true"'),
+    'Cancel and row Edit actions expose visible button and current-edit states');
+$check(str_contains($adminScript, "window.location.hash === '#jyr-editor'")
+    && str_contains($adminScript, 'scrollIntoView')
+    && str_contains($adminScript, 'prefers-reduced-motion: reduce')
+    && str_contains($adminScript, 'focus({ preventScroll: true })'),
+    'Edit navigation scrolls and focuses accessibly while respecting reduced motion');
+$check(str_contains($adminStyles, 'var(--adam-primary')
+    && str_contains($adminStyles, 'var(--adam-primary-soft')
+    && str_contains($adminStyles, 'var(--adam-card')
+    && str_contains($adminStyles, 'var(--adam-text-2')
+    && str_contains($adminStyles, 'var(--adam-border-2')
+    && str_contains($adminStyles, '.jyr-action-button:focus-visible'),
+    'Edit affordances use Adiwira light/dark tokens and visible keyboard focus');
+
 foreach ($manifest['static']['copy'] ?? [] as $entry) {
     $destination = (string)($entry['to'] ?? '');
     $source = (string)($entry['from'] ?? '');
